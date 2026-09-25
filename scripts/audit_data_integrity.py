@@ -2,7 +2,8 @@ import pandas as pd
 import os
 import sys
 
-sys.path.insert(0, r"c:\Users\N  S Shamika\Downloads\6ab10eb3b23ba_student_resource\student_resource")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 from src.preprocessing import validate_schema
 
 def audit_file(filepath, expected_source):
@@ -103,7 +104,8 @@ def audit_file(filepath, expected_source):
     }
 
 def main():
-    base_dir = r"c:\Users\N  S Shamika\Downloads\6ab10eb3b23ba_student_resource\student_resource\dataset"
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    base_dir = os.path.join(repo_root, "dataset")
     
     files = [
         (os.path.join(base_dir, 'train', 'train_source1.tsv'), 'S1'),
@@ -138,12 +140,7 @@ def main():
         
         print(f"{r['file']}: {r['total_rows']} rows, Valid: {r['schema_valid']}, Dup IDs: {r['dup_ids']}, Invalid Prefix: {r['invalid_prefixes']}")
 
-    out_dir = r"c:\Users\N  S Shamika\Downloads\6ab10eb3b23ba_student_resource\student_resource\scripts"
-    os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "audit_data_integrity.py"), "w") as f:
-        pass # just checking script is written here
-        
-    out_report_dir = r"c:\Users\N  S Shamika\Downloads\6ab10eb3b23ba_student_resource\student_resource\reports"
+    out_report_dir = os.path.join(repo_root, "reports")
     os.makedirs(out_report_dir, exist_ok=True)
     with open(os.path.join(out_report_dir, "data_integrity_full_audit.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(out_lines))

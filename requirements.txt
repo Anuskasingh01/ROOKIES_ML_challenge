@@ -1,0 +1,4 @@
+pandas>=2.0
+numpy>=1.24
+# stdlib only otherwise (collections, heapq, re, unicodedata) - no external
+# services, no network calls, matches the challenge's no-external-data rule.

@@ -1,83 +1,83 @@
 === train_source1.tsv ===
 Schema Valid: True 
-Total rows: 2206821
+Total rows: 4
 Columns: ['entity_id', 'business_name', 'business_address', 'country']
 Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
 Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
 Duplicate Entity IDs: 0
 Duplicate Rows: 0
 Invalid Prefixes: 0
-Country Distribution: {'US': 1323633, 'India': 883188}
-Name Lengths: min=3, max=105
-Address Lengths: min=11, max=256
+Country Distribution: {'US': 3, 'France': 1}
+Name Lengths: min=11, max=25
+Address Lengths: min=17, max=23
 
 
 === train_source2.tsv ===
 Schema Valid: True 
-Total rows: 5034616
-Columns: ['entity_id', 'business_name', 'business_address', 'country']
-Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
-Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(168967), 'country': np.int64(0)}
-Duplicate Entity IDs: 0
-Duplicate Rows: 0
-Invalid Prefixes: 0
-Country Distribution: {'India': 2017799, 'US': 3016817}
-Name Lengths: min=2, max=104
-Address Lengths: min=0, max=249
-
-
-=== train_source3.tsv ===
-Schema Valid: True 
-Total rows: 5285603
-Columns: ['entity_id', 'business_name', 'business_address', 'country']
-Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
-Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(175916), 'country': np.int64(0)}
-Duplicate Entity IDs: 0
-Duplicate Rows: 0
-Invalid Prefixes: 0
-Country Distribution: {'US': 3170056, 'India': 2115547}
-Name Lengths: min=2, max=123
-Address Lengths: min=0, max=240
-
-
-=== test_source1.tsv ===
-Schema Valid: True 
-Total rows: 1732544
+Total rows: 4
 Columns: ['entity_id', 'business_name', 'business_address', 'country']
 Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
 Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
 Duplicate Entity IDs: 0
 Duplicate Rows: 0
 Invalid Prefixes: 0
-Country Distribution: {'US': 663106, 'France': 259452, 'India': 809986}
-Name Lengths: min=3, max=92
-Address Lengths: min=11, max=268
+Country Distribution: {'US': 3, 'France': 1}
+Name Lengths: min=11, max=26
+Address Lengths: min=20, max=30
+
+
+=== train_source3.tsv ===
+Schema Valid: True 
+Total rows: 4
+Columns: ['entity_id', 'business_name', 'business_address', 'country']
+Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
+Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
+Duplicate Entity IDs: 0
+Duplicate Rows: 0
+Invalid Prefixes: 0
+Country Distribution: {'US': 4}
+Name Lengths: min=11, max=15
+Address Lengths: min=15, max=23
+
+
+=== test_source1.tsv ===
+Schema Valid: True 
+Total rows: 4
+Columns: ['entity_id', 'business_name', 'business_address', 'country']
+Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
+Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
+Duplicate Entity IDs: 0
+Duplicate Rows: 0
+Invalid Prefixes: 0
+Country Distribution: {'US': 3, 'France': 1}
+Name Lengths: min=11, max=25
+Address Lengths: min=17, max=23
 
 
 === test_source2.tsv ===
 Schema Valid: True 
-Total rows: 4887273
+Total rows: 4
 Columns: ['entity_id', 'business_name', 'business_address', 'country']
 Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
-Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(129408), 'country': np.int64(0)}
+Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
 Duplicate Entity IDs: 0
 Duplicate Rows: 0
 Invalid Prefixes: 0
-Country Distribution: {'India': 2312565, 'France': 703378, 'US': 1871330}
-Name Lengths: min=2, max=102
-Address Lengths: min=0, max=269
+Country Distribution: {'US': 3, 'France': 1}
+Name Lengths: min=11, max=26
+Address Lengths: min=20, max=30
 
 
 === test_source3.tsv ===
 Schema Valid: True 
-Total rows: 5082316
+Total rows: 4
 Columns: ['entity_id', 'business_name', 'business_address', 'country']
 Missing Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
-Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(136098), 'country': np.int64(0)}
+Empty Counts: {'entity_id': np.int64(0), 'business_name': np.int64(0), 'business_address': np.int64(0), 'country': np.int64(0)}
 Duplicate Entity IDs: 0
 Duplicate Rows: 0
 Invalid Prefixes: 0
-Country Distribution: {'India': 2405000, 'France': 731615, 'US': 1945701}
-Name Lengths: min=2, max=103
-Address Lengths: min=0, max=267
+Country Distribution: {'US': 4}
+Name Lengths: min=11, max=15
+Address Lengths: min=15, max=23
 

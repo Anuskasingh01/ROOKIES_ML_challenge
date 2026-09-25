@@ -205,7 +205,7 @@ def validate_id_list_file(path, expected_header, col_label, required, valid_ids,
     return mapping
 
 
-def validate(matching_path, candidate_path, test_dir, check_ids=False):
+def validate(matching_path, candidate_path, test_dir, check_ids=False, candidate_only=False):
     """Validate the submission output(s); return ``(errors, warnings)`` lists.
 
     ``check_ids`` (``--check-ids``) turns on the optional, memory-heavy check that
@@ -235,9 +235,12 @@ def validate(matching_path, candidate_path, test_dir, check_ids=False):
             "your submission."
         )
 
-    matched = validate_id_list_file(
-        matching_path, MATCHING_HEADER, "matched_entity_ids", required, valid_ids, errors
-    )
+    if not candidate_only:
+        matched = validate_id_list_file(
+            matching_path, MATCHING_HEADER, "matched_entity_ids", required, valid_ids, errors
+        )
+    else:
+        matched = None
 
     # candidate_pairs.tsv is optional: if it's absent we skip its checks with a
     # warning (it's still expected in your final submission zip). A missing
@@ -304,6 +307,11 @@ def main():
         "GB on the full test set). A nonexistent ID only lowers your score, so this "
         "is a diagnostic, not a submission gate.",
     )
+    parser.add_argument(
+        "--candidate-only",
+        action="store_true",
+        help="Validate only candidate_pairs.tsv without requiring matching_results.tsv.",
+    )
     args = parser.parse_args()
 
     # candidate_pairs.tsv is optional; default to the conventional path and let
@@ -314,7 +322,7 @@ def main():
     print(f"  test dir: {args.test_dir}")
     try:
         errors, warnings = validate(
-            args.matching, candidate_path, args.test_dir, check_ids=args.check_ids
+            args.matching, candidate_path, args.test_dir, check_ids=args.check_ids, candidate_only=args.candidate_only
         )
     except UnicodeDecodeError:
         print()
