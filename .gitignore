@@ -1,0 +1,10 @@
+dataset/
+__MACOSX/
+.DS_Store
+._*
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env

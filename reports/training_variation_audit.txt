@@ -1,0 +1,300 @@
+A. Sample size
+Valid genuine pairs analyzed: 20000
+
+B. Positive-pair agreement statistics
+Exact normalized business-name match rate: 4214 (21.07%) [Raw: 4.59%]
+Exact normalized address match rate: 1595 (7.98%) [Raw: 2.38%]
+Exact normalized country match rate: 20000 (100.00%)
+Exact normalized name AND address match rate: 210 (1.05%)
+Name matches while address differs: 4004 (20.02%)
+Address matches while name differs: 1385 (6.93%)
+Both name and address differ: 14401 (72.00%)
+Cases with missing/empty S2/S3 address: 858 (4.29%)
+
+C. Name variation statistics/examples
+Top obvious patterns observed: Legal suffix variations, missing words, word order differences, acronyms/abbreviations.
+20 Representative Examples where names differ:
+  S1: Maure Williams Colombier Inc
+  S2/S3: Maure Wilblims Colombier Inc
+  Norm S1: maure williams colombier inc
+  Norm S2/S3: maure wilblims colombier inc
+  Country: US
+
+  S1: Maure Williams Colombier Inc
+  S2/S3: Maure Williams Colombier
+  Norm S1: maure williams colombier inc
+  Norm S2/S3: maure williams colombier
+  Country: US
+
+  S1: Maure Williams Colombier Inc
+  S2/S3: Dréxkor
+  Norm S1: maure williams colombier inc
+  Norm S2/S3: dréxkor
+  Country: US
+
+  S1: Maure Williams Colombier Inc
+  S2/S3: maurewilliamscolombier.com
+  Norm S1: maure williams colombier inc
+  Norm S2/S3: maurewilliamscolombier com
+  Country: US
+
+  S1: Maure Williams Colombier Inc
+  S2/S3: Maure Williams Inc Center
+  Norm S1: maure williams colombier inc
+  Norm S2/S3: maure williams inc center
+  Country: US
+
+  S1: Raj Investments LLP
+  S2/S3: ராஜ் இன்வெஸ்ட்மெண்ட்ஸ் எல்எல்பி
+  Norm S1: raj investments llp
+  Norm S2/S3: ர ஜ இன வ ஸ ட ம ண ட ஸ எல எல ப
+  Country: India
+
+  S1: Raj Investments LLP
+  S2/S3: Raj Investments எல்எல்பி
+  Norm S1: raj investments llp
+  Norm S2/S3: raj investments எல எல ப
+  Country: India
+
+  S1: Raj Investments LLP
+  S2/S3: ராஜ் இன்வெஸ்ட்மெண்ட்ஸ் எல்எல்பி
+  Norm S1: raj investments llp
+  Norm S2/S3: ர ஜ இன வ ஸ ட ம ண ட ஸ எல எல ப
+  Country: India
+
+  S1: Dahlia Power Reliable Scientific LLC
+  S2/S3: Dahlia Power Reliable
+  Norm S1: dahlia power reliable scientific llc
+  Norm S2/S3: dahlia power reliable
+  Country: US
+
+  S1: Dahlia Power Reliable Scientific LLC
+  S2/S3: Dahlia Power Reliable Scientific
+  Norm S1: dahlia power reliable scientific llc
+  Norm S2/S3: dahlia power reliable scientific
+  Country: US
+
+  S1: Dahlia Power Reliable Scientific LLC
+  S2/S3: Dahlia Ponr Reliable Scientific LLC
+  Norm S1: dahlia power reliable scientific llc
+  Norm S2/S3: dahlia ponr reliable scientific llc
+  Country: US
+
+  S1: Ss Food Private Limited
+  S2/S3: एसएस फूड प्राइवेट लिमिटेड
+  Norm S1: ss food private limited
+  Norm S2/S3: एसएस फ ड प र इव ट ल म ट ड
+  Country: India
+
+  S1: Ss Food Private Limited
+  S2/S3: एसएस फूड प्राइवेट लिमिटेड
+  Norm S1: ss food private limited
+  Norm S2/S3: एसएस फ ड प र इव ट ल म ट ड
+  Country: India
+
+  S1: Ss Food Private Limited
+  S2/S3: एसएस फूड प्राइवेट लिमिटेड
+  Norm S1: ss food private limited
+  Norm S2/S3: एसएस फ ड प र इव ट ल म ट ड
+  Country: India
+
+  S1: Payne Enterprises
+  S2/S3: Payne Énterprises
+  Norm S1: payne enterprises
+  Norm S2/S3: payne énterprises
+  Country: US
+
+  S1: Payne Enterprises
+  S2/S3: Payne Enterpires
+  Norm S1: payne enterprises
+  Norm S2/S3: payne enterpires
+  Country: US
+
+  S1: Payne Enterprises
+  S2/S3: PAYNE-ENRTPRMISES
+  Norm S1: payne enterprises
+  Norm S2/S3: payne enrtprmises
+  Country: US
+
+  S1: Payne Enterprises
+  S2/S3: Payne Etrepndiels
+  Norm S1: payne enterprises
+  Norm S2/S3: payne etrepndiels
+  Country: US
+
+  S1: Payne Enterprises
+  S2/S3: Payne Énterprises
+  Norm S1: payne enterprises
+  Norm S2/S3: payne énterprises
+  Country: US
+
+  S1: Payne Enterprises
+  S2/S3: Payne Enterprises  LLC
+  Norm S1: payne enterprises
+  Norm S2/S3: payne enterprises llc
+  Country: US
+
+
+D. Address variation statistics/examples
+Top obvious patterns observed: Different address format entirely, missing components, abbreviation differences.
+20 Representative Examples where addresses differ:
+  S1: 85 Wayne Avenue, Ticonderoga, NY
+  S2/S3: 
+  Norm S1: 85 wayne avenue ticonderoga ny
+  Norm S2/S3: 
+  Country: US
+
+  S1: 85 Wayne Avenue, Ticonderoga, NY
+  S2/S3: 
+  Norm S1: 85 wayne avenue ticonderoga ny
+  Norm S2/S3: 
+  Country: US
+
+  S1: 85 Wayne Avenue, Ticonderoga, NY
+  S2/S3: 85 Wanye Avenue, Ticonderoga Townshiip, New York
+  Norm S1: 85 wayne avenue ticonderoga ny
+  Norm S2/S3: 85 wanye avenue ticonderoga townshiip new york
+  Country: US
+
+  S1: 85 Wayne Avenue, Ticonderoga, NY
+  S2/S3: Wayne Ave, Ticonderoga Townshiip, New York
+  Norm S1: 85 wayne avenue ticonderoga ny
+  Norm S2/S3: wayne ave ticonderoga townshiip new york
+  Country: US
+
+  S1: 85 Wayne Avenue, Ticonderoga, NY
+  S2/S3: 
+  Norm S1: 85 wayne avenue ticonderoga ny
+  Norm S2/S3: 
+  Country: US
+
+  S1: 6(29), C.I.T. Colony, 2Nd Main Road Mylapore, Chennai, Tamil Nadu
+  S2/S3: 6(29), C.i.t. Colony, 2Nd Main Road Mylapore, Chennai, TN
+  Norm S1: 6 29 c i t colony 2nd main road mylapore chennai tamil nadu
+  Norm S2/S3: 6 29 c i t colony 2nd main road mylapore chennai tn
+  Country: India
+
+  S1: 6(29), C.I.T. Colony, 2Nd Main Road Mylapore, Chennai, Tamil Nadu
+  S2/S3: 6(29), C.i.t. Colony, 2Nd Main Road Mylapore, Chennai, தமிழ்நாடு
+  Norm S1: 6 29 c i t colony 2nd main road mylapore chennai tamil nadu
+  Norm S2/S3: 6 29 c i t colony 2nd main road mylapore chennai தம ழ ந ட
+  Country: India
+
+  S1: 630 45th Terrace, Kansas City, MO
+  S2/S3: KANSAS CITY, MO, 630 45ND TERRACE, null
+  Norm S1: 630 45th terrace kansas city mo
+  Norm S2/S3: kansas city mo 630 45nd terrace null
+  Country: US
+
+  S1: 630 45th Terrace, Kansas City, MO
+  S2/S3: 45ND TERRACE, null, KANSAS CITY, MO
+  Norm S1: 630 45th terrace kansas city mo
+  Norm S2/S3: 45nd terrace null kansas city mo
+  Country: US
+
+  S1: 630 45th Terrace, Kansas City, MO
+  S2/S3: Missouri, 630 45th Terrace, Kansas City
+  Norm S1: 630 45th terrace kansas city mo
+  Norm S2/S3: missouri 630 45th terrace kansas city
+  Country: US
+
+  S1: Af-684, Nandgram Near Mother India Public School. Ph. 989, 9487203, Ghaziabad, Uttar Pradesh
+  S2/S3: AF-0684, NANDGRAM NEAR MOTHER INDIA PUBLIC SCHOOL. PH. 989, GHAZIABAD, 9487203, उत्तर प्रदेश
+  Norm S1: af 684 nandgram near mother india public school ph 989 9487203 ghaziabad uttar pradesh
+  Norm S2/S3: af 0684 nandgram near mother india public school ph 989 ghaziabad 9487203 उत तर प रद श
+  Country: India
+
+  S1: Af-684, Nandgram Near Mother India Public School. Ph. 989, 9487203, Ghaziabad, Uttar Pradesh
+  S2/S3: AF-0684, Uttar Pradesh, GHAZIABAD, 9487203
+  Norm S1: af 684 nandgram near mother india public school ph 989 9487203 ghaziabad uttar pradesh
+  Norm S2/S3: af 0684 uttar pradesh ghaziabad 9487203
+  Country: India
+
+  S1: Af-684, Nandgram Near Mother India Public School. Ph. 989, 9487203, Ghaziabad, Uttar Pradesh
+  S2/S3: Af-684, Ghaziabad, UP
+  Norm S1: af 684 nandgram near mother india public school ph 989 9487203 ghaziabad uttar pradesh
+  Norm S2/S3: af 684 ghaziabad up
+  Country: India
+
+  S1: 3315 Fremont Street, Peoria, IL
+  S2/S3: 3315 FREMONT ST, PEORIA, IL
+  Norm S1: 3315 fremont street peoria il
+  Norm S2/S3: 3315 fremont st peoria il
+  Country: US
+
+  S1: 3315 Fremont Street, Peoria, IL
+  S2/S3: 3315 FREMONT ST, PEORIA, IL
+  Norm S1: 3315 fremont street peoria il
+  Norm S2/S3: 3315 fremont st peoria il
+  Country: US
+
+  S1: 3315 Fremont Street, Peoria, IL
+  S2/S3: 3315 FREMONT SAINT, PEORIA, IL
+  Norm S1: 3315 fremont street peoria il
+  Norm S2/S3: 3315 fremont saint peoria il
+  Country: US
+
+  S1: 3315 Fremont Street, Peoria, IL
+  S2/S3: 3315 Fremont St, Peoria, Illinois
+  Norm S1: 3315 fremont street peoria il
+  Norm S2/S3: 3315 fremont st peoria illinois
+  Country: US
+
+  S1: 3315 Fremont Street, Peoria, IL
+  S2/S3: 3315 Fremont Street, Peoria, Illinois
+  Norm S1: 3315 fremont street peoria il
+  Norm S2/S3: 3315 fremont street peoria illinois
+  Country: US
+
+  S1: 3315 Fremont Street, Peoria, IL
+  S2/S3: Fremont St, Peoria, Illinois
+  Norm S1: 3315 fremont street peoria il
+  Norm S2/S3: fremont st peoria illinois
+  Country: US
+
+  S1: 1056 Belden Avenue, Akron, OH
+  S2/S3: 1056-1060 BELDEN AVE, PO BOX 8807, AKRON, OH
+  Norm S1: 1056 belden avenue akron oh
+  Norm S2/S3: 1056 1060 belden ave po box 8807 akron oh
+  Country: US
+
+
+E. Normalized-name collision statistics (Based on 200,000 combined S2+S3 rows)
+Number of unique normalized business names: 192769
+Number of normalized business names appearing more than once: 4898
+Number of normalized names shared by multiple countries: 227
+Top 20 most frequent normalized business names:
+  behavioral health: 26
+  urgent care: 24
+  physical therapy: 23
+  womens health: 21
+  internal medicine: 20
+  pediatric dental: 20
+  pediatric dentistry: 19
+  meridian llc: 15
+  earnosethroat com: 14
+  straight edge: 14
+  ear nose and throat: 12
+  eye partners: 12
+  primary care: 12
+  foot and ankle: 12
+  vision physicians: 11
+  the dent: 11
+  family center: 10
+  pediatric center: 10
+  eye group: 10
+  asset building: 10
+
+F. Recommendations for Person 1 (Data Engineering & Normalization)
+- Keep the current normalization. It boosts exact match rates safely.
+- Do NOT try to normalize address strings heavily (like mapping St->Street) because variations are vast and complex; let fuzzy matching handle it.
+- Missing addresses in S2/S3 are extremely common and must be handled downstream.
+
+G. Recommendations for Person 2 (Blocking)
+- Do NOT block purely on exact address match, as it fails frequently.
+- Name match rate is much higher, but blocking purely on exact normalized name will miss pairs.
+- Consider creating tokens/n-grams from normalized names for blocking.
+- High-frequency names (like 'subway' or empty strings) should probably be blocked with geographic bins (state/country) to avoid candidate explosions.
+
+H. What should NOT be changed in preprocessing
+- Do NOT aggressively stem words. Do NOT attempt to correct spelling or expand abbreviations. It is too risky across multiple countries.

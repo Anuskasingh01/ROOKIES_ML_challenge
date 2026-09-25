@@ -1,0 +1,30 @@
+A. Entity-Level Ground Truth Statistics
+1. Total number of S1 entities: 2206821
+
+2. Match Count Distribution for S1 Entities:
+   - Zero matches: 123247
+   - Exactly 1 match: 119157
+   - Exactly 2 matches: 375212
+   - Exactly 3 matches: 530841
+   - 4+ matches: 1058364
+
+3. Cross-Source Match Distribution (for S1 with >= 1 match):
+   - S1 entities with at least one S2 match: 1919076
+   - S1 entities with at least one S3 match: 1940545
+   - S1 entities with BOTH S2 and S3 matches: 1776047
+
+B. Pair-Level Variation & Integrity Statistics
+4. Country Sharing (out of 7638365 analyzed positive pairs):
+   - Same country as S1: 7638365
+   - Different country from S1: 0
+
+5. Name Variation Among Multiple Matches (out of 1964417 S1 entities with >1 match):
+   - Multiple matched entities share the SAME normalized business name: 67141
+   - Multiple matched entities have DIFFERENT normalized business names: 1897276
+
+C. Summary Report
+- Total positive S1 entities: 2083574
+- Total positive pairs: 7638365
+- Total no-match S1 entities: 123247
+- Average matched entities per positive S1: 3.67
+- Maximum matched entities for any S1: 11
