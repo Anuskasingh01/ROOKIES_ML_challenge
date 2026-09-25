@@ -1,7 +1,10 @@
-dataset/
+﻿dataset/
 __MACOSX/
 .DS_Store
 ._*
+output/
+reports/*.csv
+reports/*.joblib
 __pycache__/
 *.pyc
 .venv/
