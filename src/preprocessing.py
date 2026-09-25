@@ -89,6 +89,21 @@ def normalize_country(series: pd.Series) -> pd.Series:
     
     return s
 
+def extract_postal_code(series: pd.Series) -> pd.Series:
+    """
+    Extract postal code (Indian 6-digit PIN code, US 5-digit ZIP, or ZIP+4) from business addresses.
+    
+    Args:
+        series (pd.Series): The business addresses.
+        
+    Returns:
+        pd.Series: Extracted postal codes, or empty string if not found.
+    """
+    s = series.fillna('').astype(str)
+    pattern = r'\b(\d{6}|\d{5}(?:-\d{4})?)\b'
+    extracted = s.str.extract(pattern, expand=False).fillna('')
+    return extracted
+
 def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     Add normalized columns to the DataFrame rather than replacing originals.
@@ -97,13 +112,22 @@ def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): The input DataFrame.
         
     Returns:
-        pd.DataFrame: The DataFrame with appended normalized columns.
+        pd.DataFrame: The DataFrame with appended normalized columns:
+                      - business_name_normalized & normalized_name
+                      - business_address_normalized & normalized_address
+                      - country_normalized
+                      - postal_code
     """
     df = df.copy()
     if 'business_name' in df.columns:
-        df['business_name_normalized'] = normalize_name(df['business_name'])
+        norm_name = normalize_name(df['business_name'])
+        df['business_name_normalized'] = norm_name
+        df['normalized_name'] = norm_name
     if 'business_address' in df.columns:
-        df['business_address_normalized'] = normalize_address(df['business_address'])
+        norm_addr = normalize_address(df['business_address'])
+        df['business_address_normalized'] = norm_addr
+        df['normalized_address'] = norm_addr
+        df['postal_code'] = extract_postal_code(df['business_address'])
     if 'country' in df.columns:
         df['country_normalized'] = normalize_country(df['country'])
     return df

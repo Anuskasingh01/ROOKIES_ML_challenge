@@ -149,5 +149,33 @@ def test_helpers():
     assert list(nums.iloc[2]) == []
     assert list(nums.iloc[3]) == ['5', '6']
 
+def test_extract_postal_code():
+    from src.preprocessing import extract_postal_code, normalize_dataframe
+    
+    addresses = pd.Series([
+        '123 Main St, New York, NY 10001',
+        'Plot 42, Sector 18, Gurugram, Haryana 122001',
+        '94107-1234 San Francisco CA',
+        'No zip here'
+    ])
+    postal = extract_postal_code(addresses)
+    assert postal.iloc[0] == '10001'
+    assert postal.iloc[1] == '122001'
+    assert postal.iloc[2] == '94107-1234'
+    assert postal.iloc[3] == ''
+
+    # Check normalize_dataframe produces normalized_name, normalized_address, postal_code
+    df = pd.DataFrame({
+        'entity_id': ['S1-1'],
+        'business_name': ['Test Corp.'],
+        'business_address': ['123 Main St 10001'],
+        'country': ['US']
+    })
+    res = normalize_dataframe(df)
+    assert 'normalized_name' in res.columns
+    assert 'normalized_address' in res.columns
+    assert 'postal_code' in res.columns
+    assert res['postal_code'].iloc[0] == '10001'
+
 if __name__ == '__main__':
     pytest.main(['-v', __file__])
