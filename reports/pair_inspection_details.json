@@ -1,0 +1,271 @@
+{
+  "pair_ids": [
+    [
+      "S1-965667",
+      "S2-681193310",
+      "MATCH"
+    ],
+    [
+      "S1-965667",
+      "S2-743505751",
+      "MATCH"
+    ],
+    [
+      "S1-965667",
+      "S3-775321672",
+      "MATCH"
+    ],
+    [
+      "S1-965667",
+      "S3-11291185",
+      "MATCH"
+    ],
+    [
+      "S1-965667",
+      "S3-860443364",
+      "MATCH"
+    ],
+    [
+      "S1-55344266",
+      "S2-249013014",
+      "MATCH"
+    ],
+    [
+      "S1-55344266",
+      "S2-197070651",
+      "MATCH"
+    ],
+    [
+      "S1-55344266",
+      "S3-478195123",
+      "MATCH"
+    ],
+    [
+      "S1-55344266",
+      "S3-384364074",
+      "MATCH"
+    ],
+    [
+      "S1-343815751",
+      "S2-790675320",
+      "MATCH"
+    ],
+    [
+      "S1-341291980",
+      "S2-614260033",
+      "NON-MATCH"
+    ],
+    [
+      "S1-265938918",
+      "S2-286201851",
+      "NON-MATCH"
+    ],
+    [
+      "S1-892577020",
+      "S2-544612526",
+      "NON-MATCH"
+    ],
+    [
+      "S1-350245409",
+      "S2-675338643",
+      "NON-MATCH"
+    ],
+    [
+      "S1-37213524",
+      "S2-621473485",
+      "NON-MATCH"
+    ],
+    [
+      "S1-95194363",
+      "S2-785378860",
+      "NON-MATCH"
+    ],
+    [
+      "S1-391248994",
+      "S2-496777850",
+      "NON-MATCH"
+    ],
+    [
+      "S1-960126068",
+      "S2-371692381",
+      "NON-MATCH"
+    ],
+    [
+      "S1-352105774",
+      "S2-543977399",
+      "NON-MATCH"
+    ],
+    [
+      "S1-504059078",
+      "S2-448440214",
+      "NON-MATCH"
+    ]
+  ],
+  "records": {
+    "S1-504059078": [
+      "Bastion Financial LLC",
+      "2729 Montclare Avenue, Chicago, IL",
+      "US"
+    ],
+    "S1-391248994": [
+      "Smart Consulting Pvt Ltd",
+      "Kajala House, Ullody, Bela, Kasaragod, Kasargod, Kerala",
+      "India"
+    ],
+    "S1-37213524": [
+      "Surgical Clinic Clinic",
+      "864 Country Road, Brookhaven, NY",
+      "US"
+    ],
+    "S1-350245409": [
+      "Select Broadcast Networks",
+      "671 Main Street, Chartiers Township, PA",
+      "US"
+    ],
+    "S1-341291980": [
+      "Oncology Care LLC",
+      "8905 Penrith Drive, Spotsylvania County, VA",
+      "US"
+    ],
+    "S1-960126068": [
+      "Corner Ice Cream",
+      "1015 Country Club Drive, La Porte, TX",
+      "US"
+    ],
+    "S1-892577020": [
+      "Delta Project",
+      "Avon, IN, 562 Dylan Drive",
+      "US"
+    ],
+    "S1-265938918": [
+      "Gulf Farmers Inc",
+      "99 Bradbrook Drive, Ona, WV",
+      "US"
+    ],
+    "S1-95194363": [
+      "Dream Hotels Pvt Ltd",
+      "Flat No -1A, Bhootal, High -Ve- Height Apartment Semra, Chinhat, Lucknow, Uttar Pradesh",
+      "India"
+    ],
+    "S1-352105774": [
+      "Nedda E. Kemp, L.C.S.W.",
+      "320 388, Crossville, AL",
+      "US"
+    ],
+    "S1-343815751": [
+      "Dahlia Power Reliable Scientific LLC",
+      "630 45th Terrace, Kansas City, MO",
+      "US"
+    ],
+    "S1-965667": [
+      "Maure Williams Colombier Inc",
+      "85 Wayne Avenue, Ticonderoga, NY",
+      "US"
+    ],
+    "S1-55344266": [
+      "Raj Investments LLP",
+      "6(29), C.I.T. Colony, 2Nd Main Road Mylapore, Chennai, Tamil Nadu",
+      "India"
+    ],
+    "S2-614260033": [
+      "Ace National Treasury",
+      "13200 CHENAL PKWY, LITTLE ROK, AR",
+      "US"
+    ],
+    "S2-785378860": [
+      "Nexeas Printing Llc",
+      "#1526 EIGHTH AVENUE, BIRMINGHAM, AL",
+      "US"
+    ],
+    "S2-496777850": [
+      "AMBER COMPANIES",
+      "342 TRASKWOOD CIR, CINCINNATI, OH",
+      "US"
+    ],
+    "S2-544612526": [
+      "Regional Infrastructure Networks Holdings",
+      "1333 ALEXWOOD DR, HOPE MILLS, NC",
+      "US"
+    ],
+    "S2-371692381": [
+      "Urbanik, Daigle & Agnegso Marketing Inc.",
+      "22 SYCAMORE WAY, MEDWAY, MA",
+      "US"
+    ],
+    "S2-286201851": [
+      "hernandeztaylorcantu.com",
+      "21 YOUNG WAY, PORTLAND, OR",
+      "US"
+    ],
+    "S2-675338643": [
+      "Kara Riggi, DO Inc.",
+      "BADER RD, ELK GROVE, CA",
+      "US"
+    ],
+    "S2-448440214": [
+      "QUANTUC MIDSTREAM L.L.C.",
+      "149 SUNDOWN LANE, POTEET, TX",
+      "US"
+    ],
+    "S2-621473485": [
+      "Global Technology Private Limited",
+      "DOOR NO 5 DILARJANG ROW, KOLKATA, West Bengal",
+      "India"
+    ],
+    "S2-543977399": [
+      "CKL  Chimera Incorporated",
+      "TX, 128 CALIFORNIA ST, FLOYDADA",
+      "US"
+    ],
+    "S2-681193310": [
+      "Maure Wilblims Colombier Inc",
+      "",
+      "US"
+    ],
+    "S2-197070651": [
+      "Raj Investments LLP",
+      "6(29), C.I.T. COLONY, 2ND MAIN ROAD MYLAPORE, CHENNAI, Tamil Nadu",
+      "India"
+    ],
+    "S2-743505751": [
+      "Maure Williams Colombier",
+      "",
+      "US"
+    ],
+    "S2-790675320": [
+      "Dahlia Power Reliable",
+      "KANSAS CITY, MO, 630 45ND TERRACE, null",
+      "US"
+    ],
+    "S2-249013014": [
+      "ராஜ் இன்வெஸ்ட்மெண்ட்ஸ் எல்எல்பி",
+      "6(29), C.I.T. COLONY, 2ND MAIN ROAD MYLAPORE, CHENNAI, Tamil Nadu",
+      "India"
+    ],
+    "S3-860443364": [
+      "Maure Williams Inc Center",
+      "",
+      "US"
+    ],
+    "S3-384364074": [
+      "ராஜ் இன்வெஸ்ட்மெண்ட்ஸ் எல்எல்பி",
+      "6(29), C.i.t. Colony, 2Nd Main Road Mylapore, Chennai, தமிழ்நாடு",
+      "India"
+    ],
+    "S3-775321672": [
+      "Dréxkor",
+      "85 Wanye Avenue, Ticonderoga Townshiip, New York",
+      "US"
+    ],
+    "S3-478195123": [
+      "Raj Investments எல்எல்பி",
+      "6(29), C.i.t. Colony, 2Nd Main Road Mylapore, Chennai, TN",
+      "India"
+    ],
+    "S3-11291185": [
+      "maurewilliamscolombier.com",
+      "Wayne Ave, Ticonderoga Townshiip, New York",
+      "US"
+    ]
+  }
+}
