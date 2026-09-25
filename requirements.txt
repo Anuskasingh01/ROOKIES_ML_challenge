@@ -1,0 +1,10 @@
+# Core data
+pandas>=2.0.0
+numpy>=1.24.0
+
+# String similarity — rapidfuzz chosen over difflib for 10-100× speed
+# improvement on large candidate sets (same API surface as difflib's SequenceMatcher).
+rapidfuzz>=3.0.0
+
+# ML / feature engineering
+scikit-learn>=1.3.0
