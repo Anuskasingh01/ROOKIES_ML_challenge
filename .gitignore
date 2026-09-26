@@ -1,4 +1,4 @@
-﻿dataset/
+dataset/
 __MACOSX/
 .DS_Store
 ._*
@@ -13,3 +13,4 @@ env/
 .env
 .pytest_cache/
 *.zip
+scratch/
