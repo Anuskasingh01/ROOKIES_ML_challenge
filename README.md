@@ -1,6 +1,6 @@
 # ML Challenge 2026 — Business Entity Resolution Pipeline
 
-Integrated pipeline combining **Person 1 (Data Engineering & Preprocessing)** and **Person 2 (Candidate Generation & Blocking)**.
+Unified, production-grade entity resolution system integrating **Person 1 (Data Engineering & Preprocessing)**, **Person 2 (Candidate Generation & Blocking)**, **Person 3 (Feature Engineering & Matching Model)**, and **Person 4 (Integration, Entity-Level Threshold Optimization, Persistence & Submission Validation)**.
 
 ---
 
@@ -11,135 +11,175 @@ dataset/ (train & test TSVs)
    │
    ▼
 [Person 1: Preprocessing & Normalization] ──> src/preprocessing.py
-   • Unicode NFKC normalization
-   • Case folding & whitespace trimming
-   • Ampersand replacement ('&' -> ' and ')
-   • Punctuation removal & postal code extraction
-   • Input schema & source prefix validation
+   • Unicode NFKC normalization, case folding, and whitespace trimming
+   • Ampersand replacement ('&' -> ' and ') & punctuation stripping
+   • Postal code extraction (Indian 6-digit PIN & US 5/9-digit ZIP)
+   • Input schema validation & source prefix verification (S1-, S2-, S3-)
    │
    ▼
 [Person 2: Multi-Strategy Candidate Blocking] ──> src/blocking.py
-   • Inverted indices over rare tokens & character 3-grams
-   • Multi-strategy union (7 complementary keys)
-   • Block purging: relative (max_df) & absolute caps
-   • Agreement-ranked candidate capping (heapq.nlargest)
+   • 7 complementary blocking keys (exact, name tokens, addr tokens, postal, street, 3-grams, sorted-neighborhood)
+   • Inverted indexing over rare tokens with relative & absolute frequency purging
+   • Agreement-ranked candidate capping (heapq.nlargest, max 300 candidates/entity)
+   • Zero Cartesian products (O(records x tokens))
    │
-   ├──> output/candidate_pairs.tsv (Official submission format)
-   └──> output/candidate_pairs_scored.tsv (Sidecar agreement scores for Person 3)
+   ├──> output/candidate_pairs.tsv (Official candidate deliverable)
+   │
+   ▼
+[Person 3: Feature Engineering & Model Training] ──> src/features.py, src/matching_model.py
+   • O(1) batch lookup indexing for fast feature generation
+   • 8 pairwise similarity features (token Jaccard, Levenshtein edit ratio, token-sort ratio,
+     numeric address overlap, TF-IDF unigram+bigram cosine, country match)
+   • Open-set country robustness (unseen test countries like France never filtered)
+   • Classifier training & comparison across LogisticRegression, RandomForest, GradientBoosting, HistGradientBoosting
+   │
+   ▼
+[Person 4: Integration, Threshold Tuning & Submission Validation] ──> main.py, src/evaluation.py, src/predict.py
+   • Entity-level macro F0.5 optimization on validation ground truth (evaluating full entity sets rather than pairwise F1)
+   • Correct competition metric handling: singletons correctly predicted empty score 1.0; false merges penalized with beta=0.5
+   • Complete model bundle persistence (model weights + tuned threshold + TF-IDF vectorizer + feature metadata)
+   • Unified CLI runner (main.py) with full end-to-end pipeline execution
+   • Official submission validation (utils/validate_submission.py) ensuring 100% compliance with all 14 format rules
+   │
+   └──> output/matching_results.tsv (Final competition submission deliverable)
 ```
 
 ---
 
-## 2. Person 1 — Data Engineering & Preprocessing
+## 2. Team Responsibilities & Modules
 
-- **`src/preprocessing.py`**:
-  - `load_tsv(path, usecols)`: Safely loads TSV with strict string types and no NaN coercion.
-  - `normalize_name(series)`: Vectorized normalization for business names.
-  - `normalize_address(series)`: Vectorized address normalization.
-  - `extract_postal_code(series)`: Extracts Indian 6-digit PIN and US 5(+4)-digit ZIP codes.
-  - `normalize_dataframe(df)`: Appends normalized name, address, country, and postal code columns.
-  - `validate_schema(df, expected_source)`: Asserts required columns and source ID prefixes (`S1-`, `S2-`, `S3-`).
-- **`scripts/audit_data_integrity.py`**:
-  - Scans all train and test TSVs to verify schema validity, row counts, duplicate entity IDs, and country distributions.
-- **`utils/validate_submission.py`**:
-  - Automated validator verifying compliance with competition rules (UTF-8, tab separation, required S1 coverage, no invalid candidate IDs). Supports `--candidate-only` mode during blocking development.
+| Role | Member Responsibilities | Source Files | Tests |
+|---|---|---|---|
+| **Person 1** | Data Engineering, Text Preprocessing, Postal Extraction, Schema Validation | `src/preprocessing.py`<br>`scripts/audit_data_integrity.py` | `tests/test_preprocessing.py` |
+| **Person 2** | Multi-Strategy Candidate Blocking, Inverted Indexing, candidate_pairs.tsv | `src/blocking.py`<br>`src/config.py`<br>`run_blocking.py` | `tests/test_blocking.py` |
+| **Person 3** | Feature Engineering, Text Similarities, TF-IDF Model, Classifier Training | `src/features.py`<br>`src/matching_model.py` | `tests/test_features.py`<br>`tests/test_matching_model.py` |
+| **Person 4** | Integration, Entity-Level Macro F0.5 Tuning, Model Persistence, main.py, Validation | `main.py`<br>`src/evaluation.py`<br>`src/predict.py`<br>`utils/validate_submission.py` | `tests/test_model_persistence.py`<br>`tests/test_threshold_optimization.py`<br>`tests/test_integration.py` |
 
 ---
 
-## 3. Person 2 — Candidate Generation / Blocking
+## 3. Key Methodological Innovations
 
-Generates high-recall candidate pairs without computing quadratic Cartesian products (`O(records x tokens)` rather than `O(S1 x (S2+S3))`).
+### 3.1 Candidate Blocking (Person 2)
+To avoid the $O(|S_1| \times (|S_2| + |S_3|)) \approx 1.7\text{M} \times 10\text{M} \approx 1.7 \times 10^{13}$ Cartesian product, candidate generation utilizes an inverted-index union over 7 complementary strategies:
+1. `exact_name`: Identical normalized names.
+2. `name_tokens`: Rare document-frequency tokens from business names.
+3. `address_tokens`: Rare tokens from business addresses.
+4. `postal_code`: Exact match on extracted PIN or ZIP codes.
+5. `street_token`: First two address tokens when postal codes are missing.
+6. `name_ngrams`: Rare character 3-grams for typo & transliteration tolerance.
+7. `sorted_neighborhood`: Windowed comparisons along alphabetically sorted names.
 
-### Blocking Strategies (Union of 7 Complementary Keys)
+### 3.2 Feature Engineering (Person 3)
+Features operate strictly on normalized strings and precomputed TF-IDF representations:
+- **Name Similarities**: Token Jaccard, Levenshtein edit distance ratio, RapidFuzz token sort ratio, and sublinear TF-IDF (unigram + bigram) cosine similarity.
+- **Address Similarities**: Token Jaccard, Levenshtein edit ratio, and digit/numeric token set overlap (ensuring house numbers, street numbers, and PIN codes match).
+- **Metadata**: Binary country indicator (unseen test countries like France gracefully evaluated without hardcoded filtering).
 
-| Strategy | Catches | Mechanism |
-|---|---|---|
-| `exact_name` | Clean duplicates | Exact match on normalized name |
-| `name_tokens` | Word reorderings, partial name matches | Inverted index, doc-frequency stoplisted |
-| `address_tokens` | Address variants | Same, on address tokens |
-| `postal_code` | Reliable geo match | Exact match on extracted PIN/ZIP |
-| `street_token` | Missing postal code | First 2 address tokens as fallback key |
-| `name_ngrams` | Typos, transliteration | Character 3-grams, min-shared-count threshold |
-| `sorted_neighborhood` | Word-boundary typos & heavy variants | Sort by name, slide window, pair within window |
+### 3.3 Official Entity-Level Macro $F_{0.5}$ Optimization (Person 4)
+Standard ML classification optimizes pairwise $F_1$ or log-loss, which does not correlate with the competition metric. Our integration implements `optimize_entity_threshold()`:
+- **Macro-Averaged Entity Metric**: Computes precision, recall, and $F_{0.5}$ for each Source 1 entity's set of predicted vs ground-truth matches:
+  $$F_{0.5} = \frac{1.25 \cdot P \cdot R}{0.25 \cdot P + R}$$
+- **Singleton Rule**: Source 1 entities with no matches in $S_2/S_3$ correctly predicted with an empty set receive an entity score of **1.0**. If incorrectly paired with any candidate (false merge), they score **0.0**.
+- **Threshold Search**: Scans the probability space $[0.05, 0.95]$ on a held-out validation entity split to select the decision boundary that strictly maximizes overall entity-level macro $F_{0.5}$.
 
-*Country is never used to gate candidates (open set, France appears only in test set).*
-
-### Memory & Scale Safeguards
-1. **Index-level purge** (`max_postings_per_key` + `max_*_document_frequency`): Tokens/n-grams appearing in >2% of records or >500 postings are purged.
-2. **Agreement-ranked per-entity cap** (`max_candidates_per_entity`, default 300): Candidates supported by multiple independent strategies are prioritized using `heapq.nlargest`.
+### 3.4 Model Bundle Persistence (Person 4)
+The trained classifier, fitted TF-IDF vectorizer, optimized decision threshold, feature column sequence, and training metadata are packaged together via `save_model_bundle()` into `reports/matching_model.joblib`. This ensures zero-leakage, perfectly reproducible standalone inference in `predict.py`.
 
 ---
 
 ## 4. Execution & Quick Start
 
-### A. Run Entire Integrated Pipeline
+### A. Environment Setup
 ```bash
-python run_all.py
+# 1. Create and activate virtual environment
+python -m venv .venv
+# Windows:
+.\.venv\Scripts\Activate.ps1
+# Linux/macOS:
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
 ```
-This automatically runs:
-1. Data integrity & schema audit
-2. Full test suite (Person 1 + Person 2)
-3. Candidate blocking on test set
-4. Candidate output format & ID consistency validation
-5. Recall evaluation & strategy ablation report on training split
 
-### B. Individual Steps
-
+### B. Run Full End-to-End Pipeline
 ```bash
-# 1. Run full test suite
+# Complete pipeline: train on 25k entities, tune threshold, block test set, predict, validate
+python main.py --mode full
+```
+
+### C. Individual Execution Modes
+```bash
+# 1. Train model, tune threshold on entity macro F0.5, and save model bundle
+python main.py --mode train --max-train-entities 25000
+
+# 2. Run inference on test data using saved bundle and generate final submission
+python main.py --mode predict
+
+# 3. Evaluate existing matching_results.tsv against ground truth
+python main.py --mode eval
+
+# 4. Run official submission validator
+python utils/validate_submission.py --matching output/matching_results.tsv --candidate output/candidate_pairs.tsv --test-dir dataset/test
+```
+
+### D. Run Complete Test Suite
+```bash
 python -m pytest tests -v
-
-# 2. Run data integrity audit
-python scripts/audit_data_integrity.py
-
-# 3. Generate candidate pairs for test split
-python run_blocking.py --split test --out output/candidate_pairs.tsv
-
-# 4. Validate output format against competition rules
-python utils/validate_submission.py --candidate output/candidate_pairs.tsv --candidate-only --test-dir dataset/test --check-ids
-
-# 5. Evaluate blocking recall and strategy ablation on training set
-python evaluate_blocking.py --ablation
 ```
+All **121 tests** pass covering preprocessing, blocking, feature generation, model training, bundle persistence, threshold optimization, and end-to-end integration.
 
 ---
 
-## 5. Output Format
+## 5. Deliverables & Output Schema
 
-1. **`output/candidate_pairs.tsv`** (Submission deliverable):
-   Tab-separated TSV with columns `source1_entity_id` and `candidate_entity_ids` (comma-separated S2/S3 IDs).
-2. **`output/candidate_pairs_scored.tsv`** (Model feature sidecar):
-   Contains `source1_entity_id`, `candidate_entity_id`, and `n_strategies_agreeing` — high-signal prior feature for Person 3's matching model.
+1. **`output/matching_results.tsv`** (Final Submission):
+   - Tab-separated UTF-8 file.
+   - Header: `source1_entity_id\tmatched_entity_ids`
+   - Every Source 1 entity from the test set is present exactly once. Singletons have an empty string. Matches are comma-separated `S2-` and `S3-` IDs.
+2. **`output/candidate_pairs.tsv`** (Candidate Deliverable):
+   - Tab-separated UTF-8 file.
+   - Header: `source1_entity_id\tcandidate_entity_ids`
+   - Contains candidate IDs evaluated per Source 1 entity.
+3. **`reports/matching_model.joblib`** (Model Bundle):
+   - Contains `{model, threshold, tfidf_model, feature_cols, metadata}`.
+4. **`reports/predictions.csv`** (Pairwise Scoring Telemetry):
+   - Detailed pairwise evaluation probabilities and binary decisions.
 
 ---
 
 ## 6. Directory Structure
 
 ```
-├── README.md                      # Comprehensive project documentation
-├── Documentation_template.md      # Methodology write-up template
-├── requirements.txt               # Dependencies (pandas, pytest)
-├── run_all.py                     # Master pipeline execution script
-├── run_blocking.py                # Root runner CLI for blocking
-├── evaluate_blocking.py           # Root runner for recall evaluation
-├── dataset/
-│   ├── train/                     # train_source1/2/3.tsv, train_ground_truth.tsv
-│   └── test/                      # test_source1/2/3.tsv
+ROOKIES_ML_challenge/
+├── main.py                             # Unified end-to-end pipeline runner
+├── requirements.txt                    # Project dependencies
+├── README.md                           # Master pipeline documentation
+├── Documentation_template.md           # Completed hackathon methodology report
+├── dataset/                            # Train and test splits (S1, S2, S3, ground truth)
 ├── src/
-│   ├── preprocessing.py           # Person 1: data engineering & normalization
-│   ├── blocking.py                # Person 2: multi-strategy inverted index blocking
-│   ├── config.py                  # Blocking configuration & thresholds
-│   ├── normalization_fallback.py  # Fallback normalization routines
-│   ├── run_blocking.py            # CLI entry point for candidate generation
-│   └── evaluate_blocking.py       # Blocking recall & ablation evaluator
+│   ├── preprocessing.py                # Person 1: data cleaning, normalization, schema
+│   ├── blocking.py                     # Person 2: multi-strategy inverted-index blocking
+│   ├── config.py                       # Person 2: blocking configuration dataclass
+│   ├── normalization_fallback.py       # Person 2: standalone normalization fallback
+│   ├── features.py                     # Person 3: batch similarity feature extraction
+│   ├── matching_model.py               # Person 3 & 4: training, bundle persistence
+│   ├── evaluation.py                   # Person 4: entity-level macro F0.5 evaluation & tuning
+│   └── predict.py                      # Person 4: model inference & submission generation
 ├── tests/
-│   ├── test_preprocessing.py      # Person 1 test suite (normalization, schema, helpers)
-│   └── test_blocking.py           # Person 2 test suite (recovery, singletons, deduplication)
-├── scripts/
-│   └── audit_data_integrity.py    # Data integrity audit script
+│   ├── test_preprocessing.py           # Person 1 unit tests
+│   ├── test_blocking.py                # Person 2 unit tests
+│   ├── test_features.py                # Person 3 unit tests
+│   ├── test_matching_model.py          # Person 3 unit tests
+│   ├── test_model_persistence.py       # Person 4 persistence tests
+│   ├── test_threshold_optimization.py  # Person 4 threshold optimization tests
+│   └── test_integration.py             # Person 4 end-to-end integration tests
 ├── utils/
-│   └── validate_submission.py     # Competition submission format validator
-└── output/
-    ├── candidate_pairs.tsv        # Generated candidates for test set
-    └── candidate_pairs_scored.tsv # Agreement score sidecar
+│   └── validate_submission.py          # Official 14-rule competition validator
+├── output/
+│   ├── candidate_pairs.tsv             # Candidate pairs TSV
+│   └── matching_results.tsv            # Final submission TSV
+└── reports/
+    ├── matching_model.joblib           # Serialized model bundle
+    └── predictions.csv                 # Detailed pairwise scoring output
 ```
