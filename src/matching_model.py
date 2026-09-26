@@ -5,8 +5,9 @@ Ground truth conversion, model training, threshold tuning, and prediction
 generation for the pairwise entity-matching classifier.
 """
 
-from __future__ import annotations
-
+import os
+from typing import Any
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -199,7 +200,100 @@ def train_model(
         ).sort_values(ascending=False)
         print("\nTop features (|coefficient|):")
         print(feature_importance.head(10))
-    else:
-        feature_importance = None
-
     return best_model, best_threshold, feature_importance
+
+
+def save_model_bundle(
+    model: Any,
+    threshold: float,
+    tfidf_model: Any = None,
+    path: str | os.PathLike = "reports/matching_model.joblib",
+    feature_cols: list[str] | None = None,
+    extra_metadata: dict | None = None,
+) -> str:
+    """
+    Save the trained matching model, prediction threshold, TF-IDF vectorizer,
+    and associated metadata into a single joblib bundle file.
+
+    Parameters
+    ----------
+    model : classifier object
+        Trained model (e.g. RandomForestClassifier, LogisticRegression).
+    threshold : float
+        Decision threshold for predicting a positive match.
+    tfidf_model : TfidfVectorizer or None
+        Fitted TF-IDF model on entity names, used to transform candidates at test time.
+    path : str or Path
+        Destination path for the .joblib file.
+    feature_cols : list[str] | None
+        List of feature column names the model was trained on.
+    extra_metadata : dict | None
+        Optional dictionary of additional metadata (e.g. training scores, metrics).
+
+    Returns
+    -------
+    str : Path to the saved bundle.
+    """
+    dir_name = os.path.dirname(str(path))
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+
+    bundle = {
+        "model": model,
+        "threshold": float(threshold),
+        "tfidf_model": tfidf_model,
+        "feature_cols": list(feature_cols) if feature_cols is not None else None,
+        "metadata": extra_metadata or {},
+    }
+    joblib.dump(bundle, str(path))
+    return str(path)
+
+
+def load_model_bundle(
+    path: str | os.PathLike = "reports/matching_model.joblib",
+    require_tfidf: bool = False,
+) -> dict:
+    """
+    Load a model bundle from disk and validate required keys.
+
+    Parameters
+    ----------
+    path : str or Path
+        Path to the saved .joblib file.
+    require_tfidf : bool
+        If True, raises ValueError if 'tfidf_model' is not in the bundle.
+
+    Returns
+    -------
+    dict with keys:
+        - 'model': trained classifier
+        - 'threshold': float
+        - 'tfidf_model': TfidfVectorizer (or None if older bundle)
+        - 'feature_cols': list[str] | None
+        - 'metadata': dict
+    """
+    path_str = str(path)
+    if not os.path.exists(path_str):
+        raise FileNotFoundError(f"Model bundle not found at {path_str}")
+
+    bundle = joblib.load(path_str)
+    if not isinstance(bundle, dict):
+        raise ValueError(f"Expected dict bundle in {path_str}, got {type(bundle).__name__}")
+
+    if "model" not in bundle:
+        raise KeyError(f"Corrupted bundle at {path_str}: missing 'model' key")
+    if "threshold" not in bundle:
+        raise KeyError(f"Corrupted bundle at {path_str}: missing 'threshold' key")
+
+    if require_tfidf and ("tfidf_model" not in bundle or bundle["tfidf_model"] is None):
+        raise KeyError(f"Bundle at {path_str} does not contain required 'tfidf_model'")
+
+    # Guarantee standard keys exist for backwards compatibility with raw dicts
+    if "tfidf_model" not in bundle:
+        bundle["tfidf_model"] = None
+    if "feature_cols" not in bundle:
+        bundle["feature_cols"] = None
+    if "metadata" not in bundle:
+        bundle["metadata"] = {}
+
+    return bundle

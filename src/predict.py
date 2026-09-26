@@ -14,9 +14,11 @@ candidate pair with the trained matching model, and outputs:
 
 from __future__ import annotations
 
+import os
 import joblib
 import pandas as pd
 
+from src.matching_model import load_model_bundle
 from src.features import (
     normalize_sources,
     build_lookup_index,
@@ -68,10 +70,13 @@ def generate_predictions(
     against. generate_matching_results() re-adds them as empty-match rows
     when building the final submission file.
     """
-    print("Loading saved model...")
-    saved = joblib.load(model_path)
+    print("Loading saved model bundle...")
+    saved = load_model_bundle(model_path)
     model = saved["model"]
     threshold = saved["threshold"]
+    tfidf = saved.get("tfidf_model")
+    if feature_cols is None and saved.get("feature_cols"):
+        feature_cols = saved["feature_cols"]
     print(f"Loaded model={type(model).__name__}, threshold={threshold:.4f}")
 
     print("Normalizing source data...")
@@ -81,12 +86,19 @@ def generate_predictions(
     s1_idx = build_lookup_index(s1_df)
     s23_idx = pd.concat([build_lookup_index(s2_df), build_lookup_index(s3_df)])
 
-    print("Fitting TF-IDF...")
-    tfidf = fit_tfidf(s1_df, s2_df, s3_df)
+    if tfidf is None:
+        print("Fitting TF-IDF (fallback)...")
+        tfidf = fit_tfidf(s1_df, s2_df, s3_df)
+    else:
+        print("Using persisted TF-IDF vectorizer from model bundle...")
 
     print("Exploding candidate pairs...")
     pairs = explode_candidate_pairs(candidate_pairs_df)
     print(f"Total pairs to score: {len(pairs)}")
+
+    out_dir = os.path.dirname(str(output_path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
 
     if len(pairs) == 0:
         print("No candidate pairs to score — writing empty predictions file.")
@@ -173,8 +185,9 @@ def generate_matching_results(
     # Ensure every S1 test entity appears exactly once, singletons get ""
     all_ids_df = pd.DataFrame({"source1_entity_id": all_source1_ids.unique()})
     result = all_ids_df.merge(grouped, on="source1_entity_id", how="left")
-    result["matched_entity_ids"] = result["matched_entity_ids"].fillna("")
-
+    out_dir = os.path.dirname(str(output_path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
     result.to_csv(output_path, sep="\t", index=False)
     print(f"Saved matching_results.tsv with {len(result)} rows to {output_path}")
     print(f"Entities with >=1 match: {(result['matched_entity_ids'] != '').sum()}")
