@@ -204,6 +204,7 @@ def train_model(
     print("Confusion matrix:")
     print(confusion_matrix(y_val, val_preds))
 
+    feature_importance = pd.Series(0.0, index=feature_cols)
     if hasattr(best_model, "feature_importances_"):
         feature_importance = pd.Series(
             best_model.feature_importances_, index=feature_cols
@@ -216,6 +217,8 @@ def train_model(
         ).sort_values(ascending=False)
         print("\nTop features (|coefficient|):")
         print(feature_importance.head(10))
+    else:
+        print("\nModel does not directly expose feature_importances_ or coef_.")
     return best_model, best_threshold, feature_importance
 
 

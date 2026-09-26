@@ -79,7 +79,31 @@ def generate_predictions(
         feature_cols = saved["feature_cols"]
     print(f"Loaded model={type(model).__name__}, threshold={threshold:.4f}")
 
-    print("Normalizing source data...")
+    print("Exploding candidate pairs...")
+    pairs = explode_candidate_pairs(candidate_pairs_df)
+    print(f"Total pairs to score: {len(pairs)}")
+
+    out_dir = os.path.dirname(str(output_path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
+    if len(pairs) == 0:
+        print("No candidate pairs to score — writing empty predictions file.")
+        empty = pd.DataFrame(columns=[
+            "source1_entity_id", "candidate_entity_id",
+            "match_probability", "predicted_match",
+        ])
+        empty.to_csv(output_path, index=False)
+        return empty
+
+    needed_s1 = set(pairs["source1_entity_id"])
+    needed_s23 = set(pairs["candidate_entity_id"])
+
+    s1_df = s1_df[s1_df["entity_id"].isin(needed_s1)].reset_index(drop=True)
+    s2_df = s2_df[s2_df["entity_id"].isin(needed_s23)].reset_index(drop=True)
+    s3_df = s3_df[s3_df["entity_id"].isin(needed_s23)].reset_index(drop=True)
+
+    print(f"Normalizing candidate entities (S1: {len(s1_df)}, S2: {len(s2_df)}, S3: {len(s3_df)})...")
     s1_df, s2_df, s3_df = normalize_sources(s1_df, s2_df, s3_df)
 
     print("Building lookup indexes...")
@@ -91,13 +115,6 @@ def generate_predictions(
         tfidf = fit_tfidf(s1_df, s2_df, s3_df)
     else:
         print("Using persisted TF-IDF vectorizer from model bundle...")
-
-    print("Exploding candidate pairs...")
-    pairs = explode_candidate_pairs(candidate_pairs_df)
-    print(f"Total pairs to score: {len(pairs)}")
-
-    out_dir = os.path.dirname(str(output_path))
-    if out_dir:
         os.makedirs(out_dir, exist_ok=True)
 
     if len(pairs) == 0:

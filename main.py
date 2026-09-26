@@ -132,6 +132,20 @@ def run_training_pipeline(
         s1_df = s1_df[s1_df["entity_id"].isin(sampled_s1_ids)].reset_index(drop=True)
         gt_df = gt_df[gt_df["source1_entity_id"].isin(sampled_s1_ids)].reset_index(drop=True)
 
+        logger.info("Filtering S2 and S3 candidate pool for efficient training...")
+        gt_matched = gt_df["matched_entity_ids"].dropna().astype(str).str.cat(sep=",").split(",")
+        pos_candidates = {cid.strip() for cid in gt_matched if cid.strip()}
+        pos_s2 = {cid for cid in pos_candidates if cid.startswith("S2-")}
+        pos_s3 = {cid for cid in pos_candidates if cid.startswith("S3-")}
+
+        n_neg = max(50000, max_train_entities * negatives_per_positive * 2)
+        neg_s2 = set(s2_df["entity_id"].sample(n=min(len(s2_df), n_neg), random_state=seed))
+        neg_s3 = set(s3_df["entity_id"].sample(n=min(len(s3_df), n_neg), random_state=seed))
+
+        s2_df = s2_df[s2_df["entity_id"].isin(pos_s2 | neg_s2)].reset_index(drop=True)
+        s3_df = s3_df[s3_df["entity_id"].isin(pos_s3 | neg_s3)].reset_index(drop=True)
+        logger.info("Training candidate pool: S1=%d, S2=%d, S3=%d", len(s1_df), len(s2_df), len(s3_df))
+
     # Train / Validation Split by Source 1 entity ID (prevents entity data leakage)
     all_s1_ids = s1_df["entity_id"].unique()
     train_s1_ids, val_s1_ids = train_test_split(
@@ -370,6 +384,12 @@ def main() -> None:
         help="Optional entity sample size for quick dry-runs",
     )
     parser.add_argument(
+        "--max-train-entities",
+        type=int,
+        default=25000,
+        help="Maximum training S1 entities to sample (default: 25000; set 0 for all)",
+    )
+    parser.add_argument(
         "--val-size",
         type=float,
         default=0.2,
@@ -403,12 +423,14 @@ def main() -> None:
     start_time = time.time()
     print_banner(f"STARTING PIPELINE EXECUTION (MODE: {args.mode.upper()})")
 
+    max_train = args.sample_size if args.sample_size is not None else (args.max_train_entities if args.max_train_entities > 0 else None)
+
     if args.mode in ("full", "train"):
         run_training_pipeline(
             train_dir=train_dir,
             model_path=model_path,
             val_size=args.val_size,
-            max_train_entities=args.sample_size,
+            max_train_entities=max_train,
             seed=args.seed,
         )
 
