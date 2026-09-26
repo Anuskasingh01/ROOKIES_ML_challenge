@@ -274,12 +274,31 @@ def run_inference_pipeline(
         logger.info("Sampling %d test entities for rapid execution...", sample_size)
         s1_test = s1_test.head(sample_size)
 
-    t0 = time.time()
-    candidates_df = generate_candidates(s1_test, s2_test, s3_test, blocking_config)
-    logger.info("Blocking completed in %.2fs", time.time() - t0)
+    # Check if a valid candidate_pairs.tsv already exists on disk
+    use_existing_blocking = False
+    candidates_source = None
+    if cand_out.exists() and sample_size is None:
+        try:
+            with open(cand_out, "r", encoding="utf-8") as f:
+                header = f.readline()
+                existing_count = sum(1 for _ in f)
+            if existing_count == len(s1_test):
+                logger.info(
+                    "Found existing valid candidate pairs at %s (%d rows matching S1 test count). Reusing existing blocking output.",
+                    cand_out, existing_count
+                )
+                use_existing_blocking = True
+                candidates_source = cand_out
+        except Exception:
+            use_existing_blocking = False
 
-    write_candidate_pairs_tsv(candidates_df, str(cand_out))
-    logger.info("Wrote candidate pairs to %s (%d rows)", cand_out, len(candidates_df))
+    if not use_existing_blocking:
+        t0 = time.time()
+        candidates_df = generate_candidates(s1_test, s2_test, s3_test, blocking_config)
+        logger.info("Blocking completed in %.2fs", time.time() - t0)
+        write_candidate_pairs_tsv(candidates_df, str(cand_out))
+        logger.info("Wrote candidate pairs to %s (%d rows)", cand_out, len(candidates_df))
+        candidates_source = candidates_df
 
     # 2. Pairwise Feature Computation & Model Prediction
     print_banner("STEP 3: MATCHING MODEL INFERENCE & SCORING")
@@ -287,7 +306,7 @@ def run_inference_pipeline(
         s1_df=s1_test,
         s2_df=s2_test,
         s3_df=s3_test,
-        candidate_pairs_df=candidates_df,
+        candidate_pairs_df=candidates_source,
         model_path=str(model_path),
         output_path=str(preds_out),
     )

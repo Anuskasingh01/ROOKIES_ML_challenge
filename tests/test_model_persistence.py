@@ -193,3 +193,77 @@ def test_predict_with_saved_bundle(tmp_path):
     assert 0.0 <= preds.iloc[0]["match_probability"] <= 1.0
     assert preds.iloc[0]["predicted_match"] in (0, 1)
     assert os.path.exists(pred_out)
+
+
+def test_iter_candidate_batches_df_and_file(tmp_path):
+    from src.predict import iter_candidate_batches
+
+    cands_df = pd.DataFrame([
+        {"source1_entity_id": "S1-1", "candidate_entity_ids": "S2-1,S2-2"},
+        {"source1_entity_id": "S1-2", "candidate_entity_ids": ""},
+        {"source1_entity_id": "S1-3", "candidate_entity_ids": "S2-3,S3-1,S3-2"},
+    ])
+
+    batches = list(iter_candidate_batches(cands_df, batch_size=2))
+    assert len(batches) == 3
+    assert len(batches[0]) == 2
+    assert len(batches[1]) == 2
+    assert len(batches[2]) == 1
+
+    tsv_file = tmp_path / "cands.tsv"
+    cands_df.to_csv(tsv_file, sep="\t", index=False)
+    batches_file = list(iter_candidate_batches(tsv_file, batch_size=2))
+    assert len(batches_file) == 3
+    assert len(batches_file[0]) == 2
+    assert batches_file[0].iloc[0]["source1_entity_id"] == "S1-1"
+    assert batches_file[0].iloc[0]["candidate_entity_id"] == "S2-1"
+
+
+def test_chunked_inference_batch_size(tmp_path):
+    from sklearn.linear_model import LogisticRegression
+    from src.features import normalize_sources, fit_tfidf
+    s1_df = pd.DataFrame([
+        {"entity_id": "S1-1", "business_name": "Acme Corp", "business_address": "123 Main St", "country": "US"},
+        {"entity_id": "S1-2", "business_name": "Beta LLC", "business_address": "456 Oak Rd", "country": "US"},
+    ])
+    s2_df = pd.DataFrame([
+        {"entity_id": "S2-1", "business_name": "Acme Corporation", "business_address": "123 Main Street", "country": "US"},
+        {"entity_id": "S2-2", "business_name": "Beta Limited", "business_address": "456 Oak Road", "country": "US"},
+    ])
+    s3_df = pd.DataFrame(columns=["entity_id", "business_name", "business_address", "country"])
+
+    norm_s1, norm_s2, norm_s3 = normalize_sources(s1_df, s2_df, s3_df)
+    tfidf = fit_tfidf(norm_s1, norm_s2, norm_s3)
+
+    feat_cols = ["name_jaccard", "name_edit_ratio"]
+    X = np.array([[1.0, 0.9], [0.1, 0.2]])
+    y = np.array([1, 0])
+    clf = LogisticRegression().fit(X, y)
+
+    bundle_path = tmp_path / "bundle.joblib"
+    save_model_bundle(
+        model=clf,
+        threshold=0.5,
+        tfidf_model=tfidf,
+        path=bundle_path,
+        feature_cols=feat_cols,
+    )
+
+    cands_df = pd.DataFrame([
+        {"source1_entity_id": "S1-1", "candidate_entity_ids": "S2-1,S2-2"},
+        {"source1_entity_id": "S1-2", "candidate_entity_ids": "S2-2"},
+    ])
+
+    pred_out = tmp_path / "preds.csv"
+    preds = generate_predictions(
+        s1_df=s1_df,
+        s2_df=s2_df,
+        s3_df=s3_df,
+        candidate_pairs_df=cands_df,
+        model_path=str(bundle_path),
+        output_path=str(pred_out),
+        batch_size=1,
+    )
+
+    assert len(preds) == 3
+    assert os.path.exists(pred_out)

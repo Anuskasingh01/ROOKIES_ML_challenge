@@ -14,8 +14,14 @@ candidate pair with the trained matching model, and outputs:
 
 from __future__ import annotations
 
+import gc
 import os
+import time
+from pathlib import Path
+from typing import Generator, Iterable
+
 import joblib
+import numpy as np
 import pandas as pd
 
 from src.matching_model import load_model_bundle
@@ -28,96 +34,177 @@ from src.features import (
 )
 
 
+def iter_candidate_batches(
+    candidate_source: pd.DataFrame | str | Path,
+    batch_size: int = 50000,
+) -> Generator[pd.DataFrame, None, None]:
+    """
+    Yield successive DataFrames of candidate pairs with columns
+    ['source1_entity_id', 'candidate_entity_id'] in chunks of at most batch_size.
+    Accepts either an in-memory DataFrame or a file path to candidate_pairs.tsv.
+    """
+    batch: list[tuple[str, str]] = []
+
+    if isinstance(candidate_source, (str, Path)):
+        with open(candidate_source, "r", encoding="utf-8") as f:
+            header = f.readline()  # skip header
+            for line in f:
+                s1, sep, rest = line.partition("\t")
+                if not sep:
+                    continue
+                rest = rest.rstrip("\r\n")
+                if not rest:
+                    continue
+                for cid in rest.split(","):
+                    cid = cid.strip()
+                    if cid:
+                        batch.append((s1, cid))
+                        if len(batch) >= batch_size:
+                            yield pd.DataFrame(batch, columns=["source1_entity_id", "candidate_entity_id"])
+                            batch = []
+    else:
+        df = candidate_source
+        cand_col = "candidate_ids" if "candidate_ids" in df.columns else "candidate_entity_ids"
+        for s1, cands in zip(df["source1_entity_id"], df[cand_col]):
+            if isinstance(cands, str):
+                cands = [c.strip() for c in cands.split(",") if c.strip()]
+            elif not isinstance(cands, (list, tuple, set)):
+                continue
+            for cid in cands:
+                batch.append((s1, cid))
+                if len(batch) >= batch_size:
+                    yield pd.DataFrame(batch, columns=["source1_entity_id", "candidate_entity_id"])
+                    batch = []
+
+    if batch:
+        yield pd.DataFrame(batch, columns=["source1_entity_id", "candidate_entity_id"])
+
+
 def generate_predictions(
     s1_df: pd.DataFrame,
     s2_df: pd.DataFrame,
     s3_df: pd.DataFrame,
-    candidate_pairs_df: pd.DataFrame,
+    candidate_pairs_df: pd.DataFrame | str | Path,
     model_path: str = "reports/matching_model.joblib",
     output_path: str = "reports/predictions.csv",
     feature_cols: list[str] | None = None,
+    batch_size: int = 50000,
 ) -> pd.DataFrame:
     """
-    Score every candidate pair from Person 2's blocking step with the
-    trained matching model and write per-pair predictions to disk.
+    Score candidate pairs in memory-safe sequential batches using the
+    trained matching model bundle and write predictions to disk.
 
     Parameters
     ----------
     s1_df, s2_df, s3_df : pd.DataFrame
         Raw (unnormalized) source DataFrames, as loaded from the .tsv files.
-    candidate_pairs_df : pd.DataFrame
-        Person 2's output — columns [source1_entity_id, candidate_entity_ids],
-        where candidate_entity_ids is a comma-separated string (possibly "").
+    candidate_pairs_df : pd.DataFrame | str | Path
+        Person 2's output — either DataFrame with columns [source1_entity_id,
+        candidate_entity_ids], or path to candidate_pairs.tsv on disk.
     model_path : str
-        Path to the joblib file saved by train_model(), expected to contain
-        a dict {"model": fitted_classifier, "threshold": float}.
+        Path to the persisted model bundle joblib file.
     output_path : str
-        Where to write the per-pair predictions CSV (not the final submission
-        file — see generate_matching_results() for that).
+        Where to write the per-pair predictions CSV.
     feature_cols : list[str] | None
-        Explicit feature column list. If None, inferred the same way
-        train_model() infers it (all columns except ID/label columns).
+        Explicit feature column list. If None, loaded from bundle.
+    batch_size : int
+        Number of candidate pairs to process per streaming batch (default: 50,000).
 
     Returns
     -------
     pd.DataFrame with columns:
         source1_entity_id, candidate_entity_id, match_probability, predicted_match
-
-    Notes
-    -----
-    Source1 entities with no candidates at all (singletons from Person 2's
-    blocking step) produce no rows here — there is nothing to compare them
-    against. generate_matching_results() re-adds them as empty-match rows
-    when building the final submission file.
     """
     print("Loading saved model bundle...")
     saved = load_model_bundle(model_path)
     model = saved["model"]
-    threshold = saved["threshold"]
+    threshold = float(saved["threshold"])
     tfidf = saved.get("tfidf_model")
     if feature_cols is None and saved.get("feature_cols"):
         feature_cols = saved["feature_cols"]
     print(f"Loaded model={type(model).__name__}, threshold={threshold:.4f}")
 
-    print("Exploding candidate pairs...")
-    pairs = explode_candidate_pairs(candidate_pairs_df)
-    print(f"Total pairs to score: {len(pairs)}")
-
-    out_dir = os.path.dirname(str(output_path))
-    if out_dir:
-        os.makedirs(out_dir, exist_ok=True)
-
-    if len(pairs) == 0:
-        print("No candidate pairs to score — writing empty predictions file.")
-        empty = pd.DataFrame(columns=[
-            "source1_entity_id", "candidate_entity_id",
-            "match_probability", "predicted_match",
-        ])
-        empty.to_csv(output_path, index=False)
-        return empty
-
-    needed_s1 = set(pairs["source1_entity_id"])
-    needed_s23 = set(pairs["candidate_entity_id"])
-
-    s1_df = s1_df[s1_df["entity_id"].isin(needed_s1)].reset_index(drop=True)
-    s2_df = s2_df[s2_df["entity_id"].isin(needed_s23)].reset_index(drop=True)
-    s3_df = s3_df[s3_df["entity_id"].isin(needed_s23)].reset_index(drop=True)
-
-    print(f"Normalizing candidate entities (S1: {len(s1_df)}, S2: {len(s2_df)}, S3: {len(s3_df)})...")
-    s1_df, s2_df, s3_df = normalize_sources(s1_df, s2_df, s3_df)
+    print("Normalizing source data...")
+    s1_norm, s2_norm, s3_norm = normalize_sources(s1_df, s2_df, s3_df)
 
     print("Building lookup indexes...")
-    s1_idx = build_lookup_index(s1_df)
-    s23_idx = pd.concat([build_lookup_index(s2_df), build_lookup_index(s3_df)])
+    s1_idx = build_lookup_index(s1_norm)
+    s23_idx = pd.concat([build_lookup_index(s2_norm), build_lookup_index(s3_norm)])
+    del s1_norm, s2_norm, s3_norm
+    gc.collect()
 
     if tfidf is None:
         print("Fitting TF-IDF (fallback)...")
         tfidf = fit_tfidf(s1_df, s2_df, s3_df)
     else:
         print("Using persisted TF-IDF vectorizer from model bundle...")
-        os.makedirs(out_dir, exist_ok=True)
 
-    if len(pairs) == 0:
+    out_dir = os.path.dirname(str(output_path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    if os.path.exists(output_path):
+        try:
+            os.remove(output_path)
+        except OSError:
+            pass
+
+    matched_chunks: list[pd.DataFrame] = []
+    all_batch_preds: list[pd.DataFrame] = []
+    total_pairs = 0
+    total_matches = 0
+    first_batch = True
+    batch_idx = 0
+    t_start = time.time()
+
+    print(f"Scoring candidate pairs in streaming batches of {batch_size:,}...")
+    for batch_df in iter_candidate_batches(candidate_pairs_df, batch_size=batch_size):
+        batch_idx += 1
+        n_pairs = len(batch_df)
+        total_pairs += n_pairs
+
+        # Compute features for this batch (memory-safe O(batch_size))
+        features = build_pair_features_batch(batch_df, s1_idx, s23_idx, tfidf)
+
+        if feature_cols is None:
+            feature_cols = [
+                c for c in features.columns
+                if c not in ("source1_entity_id", "candidate_entity_id", "label")
+            ]
+
+        X = features[feature_cols].fillna(0.0)
+        probs = model.predict_proba(X)[:, 1]
+        preds = (probs >= threshold).astype(int)
+
+        batch_results = pd.DataFrame({
+            "source1_entity_id": batch_df["source1_entity_id"],
+            "candidate_entity_id": batch_df["candidate_entity_id"],
+            "match_probability": probs,
+            "predicted_match": preds,
+        })
+
+        # Track positive matches
+        matched_in_batch = batch_results[batch_results["predicted_match"] == 1]
+        if not matched_in_batch.empty:
+            total_matches += len(matched_in_batch)
+            matched_chunks.append(
+                matched_in_batch[["source1_entity_id", "candidate_entity_id", "match_probability", "predicted_match"]].copy()
+            )
+
+        # Incrementally write batch to output_path
+        batch_results.to_csv(output_path, mode="a", header=first_batch, index=False)
+        first_batch = False
+
+        # In small runs (e.g. unit tests), retain full predictions in memory
+        if total_pairs <= 50000:
+            all_batch_preds.append(batch_results)
+
+        del features, X, probs, preds, batch_results
+        if batch_idx % 200 == 0:
+            elapsed = time.time() - t_start
+            rate = total_pairs / elapsed if elapsed > 0 else 0
+            print(f"  [Batch {batch_idx:,}] Scored {total_pairs:,} pairs | {total_matches:,} matches ({rate:,.0f} pairs/s)")
+
+    if total_pairs == 0:
         print("No candidate pairs to score — writing empty predictions file.")
         empty = pd.DataFrame(columns=[
             "source1_entity_id", "candidate_entity_id",
@@ -126,29 +213,19 @@ def generate_predictions(
         empty.to_csv(output_path, index=False)
         return empty
 
-    print("Building features for all pairs (this may take a while)...")
-    features = build_pair_features_batch(pairs, s1_idx, s23_idx, tfidf)
+    elapsed = time.time() - t_start
+    rate = total_pairs / elapsed if elapsed > 0 else 0
+    print(f"Scoring completed in {elapsed:.1f}s: {total_pairs:,} total pairs scored ({rate:,.0f} pairs/s), {total_matches:,} matches.")
 
-    if feature_cols is None:
-        feature_cols = [
-            c for c in features.columns
-            if c not in ("source1_entity_id", "candidate_entity_id", "label")
-        ]
-
-    X = features[feature_cols].fillna(0.0)
-
-    print("Scoring pairs...")
-    probs = model.predict_proba(X)[:, 1]
-
-    predictions = features[["source1_entity_id", "candidate_entity_id"]].copy()
-    predictions["match_probability"] = probs
-    predictions["predicted_match"] = (probs >= threshold).astype(int)
-
-    predictions.to_csv(output_path, index=False)
-    print(f"Saved {len(predictions)} predictions to {output_path}")
-    print(f"Predicted matches: {predictions['predicted_match'].sum()} / {len(predictions)}")
-
-    return predictions
+    if total_pairs <= 50000:
+        return pd.concat(all_batch_preds, ignore_index=True)
+    elif matched_chunks:
+        return pd.concat(matched_chunks, ignore_index=True)
+    else:
+        return pd.DataFrame(columns=[
+            "source1_entity_id", "candidate_entity_id",
+            "match_probability", "predicted_match",
+        ])
 
 
 def generate_matching_results(
@@ -177,15 +254,6 @@ def generate_matching_results(
     Returns
     -------
     pd.DataFrame with columns [source1_entity_id, matched_entity_ids].
-
-    Notes
-    -----
-    Follows every rule in the challenge README:
-      - Exactly one row per Source 1 entity (including singletons, via the
-        left-merge against all_source1_ids).
-      - matched_entity_ids is "" (not NaN) for entities with no matches.
-      - No duplicate entity IDs within a single ID list (defensive drop_duplicates).
-      - Written tab-separated, matching the required output format.
     """
     matched = predictions_df[predictions_df["predicted_match"] == 1].copy()
 
@@ -202,6 +270,8 @@ def generate_matching_results(
     # Ensure every S1 test entity appears exactly once, singletons get ""
     all_ids_df = pd.DataFrame({"source1_entity_id": all_source1_ids.unique()})
     result = all_ids_df.merge(grouped, on="source1_entity_id", how="left")
+    result["matched_entity_ids"] = result["matched_entity_ids"].fillna("")
+
     out_dir = os.path.dirname(str(output_path))
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
@@ -211,46 +281,27 @@ def generate_matching_results(
     print(f"Singleton (no-match) entities: {(result['matched_entity_ids'] == '').sum()}")
 
     return result
+
+
 def predict_matches(
     s1_df: pd.DataFrame,
     s2_df: pd.DataFrame,
     s3_df: pd.DataFrame,
-    candidate_pairs_df: pd.DataFrame,
+    candidate_pairs_df: pd.DataFrame | str | Path,
     model_path: str = "reports/matching_model.joblib",
     predictions_output_path: str = "reports/predictions.csv",
     matching_results_output_path: str = "output/matching_results.tsv",
+    batch_size: int = 50000,
 ) -> pd.DataFrame:
     """
     Shared-interface entry point for Person 4's main.py, matching the
     predict_matches() name specified in the team's interface contract.
-
-    Thin wrapper around generate_predictions() + generate_matching_results():
-    scores every candidate pair, then aggregates into the final
-    matching_results.tsv submission format in one call.
-
-    Parameters
-    ----------
-    s1_df, s2_df, s3_df : pd.DataFrame
-        Raw (unnormalized) source DataFrames.
-    candidate_pairs_df : pd.DataFrame
-        Person 2's candidate_pairs.tsv, loaded as a DataFrame — columns
-        [source1_entity_id, candidate_entity_ids].
-    model_path : str
-        Path to the trained model saved by train_model().
-    predictions_output_path : str
-        Where to write the intermediate per-pair predictions (debugging/audit trail).
-    matching_results_output_path : str
-        Where to write the final output/matching_results.tsv submission file.
-
-    Returns
-    -------
-    pd.DataFrame with columns [source1_entity_id, matched_entity_ids] —
-    the final matching_results.tsv content, one row per Source 1 entity.
     """
     predictions = generate_predictions(
         s1_df, s2_df, s3_df, candidate_pairs_df,
         model_path=model_path,
         output_path=predictions_output_path,
+        batch_size=batch_size,
     )
     results = generate_matching_results(
         predictions,

@@ -383,26 +383,19 @@ def build_pair_features_batch(
     # ------------------------------------------------------------------
 
     # Name features
-    df["name_jaccard"] = df.apply(
-        lambda r: _token_jaccard(r["name_norm_s1"], r["name_norm_s2"]), axis=1
-    )
-    df["name_edit_ratio"] = df.apply(
-        lambda r: _edit_ratio(r["name_norm_s1"], r["name_norm_s2"]), axis=1
-    )
-    df["name_token_sort"] = df.apply(
-        lambda r: _token_sort_ratio(r["name_norm_s1"], r["name_norm_s2"]), axis=1
-    )
+    name_s1 = df["name_norm_s1"].to_numpy()
+    name_s2 = df["name_norm_s2"].to_numpy()
+    addr_s1 = df["address_norm_s1"].to_numpy()
+    addr_s2 = df["address_norm_s2"].to_numpy()
+
+    df["name_jaccard"] = [_token_jaccard(a, b) for a, b in zip(name_s1, name_s2)]
+    df["name_edit_ratio"] = [_edit_ratio(a, b) for a, b in zip(name_s1, name_s2)]
+    df["name_token_sort"] = [_token_sort_ratio(a, b) for a, b in zip(name_s1, name_s2)]
 
     # Address features
-    df["addr_jaccard"] = df.apply(
-        lambda r: _token_jaccard(r["address_norm_s1"], r["address_norm_s2"]), axis=1
-    )
-    df["addr_edit_ratio"] = df.apply(
-        lambda r: _edit_ratio(r["address_norm_s1"], r["address_norm_s2"]), axis=1
-    )
-    df["addr_numeric_overlap"] = df.apply(
-        lambda r: _numeric_overlap(r["address_norm_s1"], r["address_norm_s2"]), axis=1
-    )
+    df["addr_jaccard"] = [_token_jaccard(a, b) for a, b in zip(addr_s1, addr_s2)]
+    df["addr_edit_ratio"] = [_edit_ratio(a, b) for a, b in zip(addr_s1, addr_s2)]
+    df["addr_numeric_overlap"] = [_numeric_overlap(a, b) for a, b in zip(addr_s1, addr_s2)]
 
     # ------------------------------------------------------------------
     # Step 5: TF-IDF cosine similarity on names — fully vectorised
