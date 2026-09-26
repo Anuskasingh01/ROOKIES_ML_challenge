@@ -360,6 +360,7 @@ def generate_candidates(
     cfg: BlockingConfig = DEFAULT_CONFIG,
     strategies: Iterable[str] = tuple(STRATEGY_REGISTRY.keys()),
     return_strategy_breakdown: bool = False,
+    include_scored_sidecar: bool = False,
 ):
     """Main entry point. Returns a long-form DataFrame with one row per
     (source1_entity_id, candidate_entity_id) pair - the exact set later fed
@@ -432,8 +433,9 @@ def generate_candidates(
             ranked = sorted(votes.items(), key=lambda kv: (-kv[1], kv[0]))
         cand_ids = sorted(cid for cid, _ in ranked)
         rows.append((eid, cand_ids))
-        for cid, vote_count in ranked:
-            scored_rows.append((eid, cid, vote_count))
+        if include_scored_sidecar:
+            for cid, vote_count in ranked:
+                scored_rows.append((eid, cid, vote_count))
 
     if n_capped:
         logger.warning(
@@ -461,7 +463,7 @@ def candidates_to_tsv_rows(candidates_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def write_candidate_pairs_tsv(
-    candidates_df: pd.DataFrame, out_path: str, write_scored_sidecar: bool = True
+    candidates_df: pd.DataFrame, out_path: str, write_scored_sidecar: bool = False
 ) -> None:
     """Writes the required output/candidate_pairs.tsv (submission format).
 
