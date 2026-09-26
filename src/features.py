@@ -128,8 +128,23 @@ def explode_candidate_pairs(candidate_pairs_df: pd.DataFrame) -> pd.DataFrame:
     """
     df = candidate_pairs_df.copy()
 
+    # Support Person 2's in-memory column name 'candidate_ids'
+    if "candidate_ids" in df.columns and "candidate_entity_ids" not in df.columns:
+        df = df.rename(columns={"candidate_ids": "candidate_entity_ids"})
+
+    if len(df) == 0:
+        return pd.DataFrame(columns=["source1_entity_id", "candidate_entity_id"])
+
+    # Check if elements are already lists
+    first_val = df["candidate_entity_ids"].dropna().iloc[0] if len(df["candidate_entity_ids"].dropna()) > 0 else ""
+    if isinstance(first_val, (list, tuple, set)):
+        df = df.explode("candidate_entity_ids")
+        df["candidate_entity_id"] = df["candidate_entity_ids"].fillna("").astype(str).str.strip()
+        df = df[df["candidate_entity_id"] != ""]
+        return df[["source1_entity_id", "candidate_entity_id"]].reset_index(drop=True)
+
     # Filter out rows with no candidates before exploding to avoid empty strings
-    # in the result.  Keep NaN and "" both as "no candidates".
+    # in the result. Keep NaN and "" both as "no candidates".
     df["candidate_entity_ids"] = df["candidate_entity_ids"].fillna("")
     df = df[df["candidate_entity_ids"] != ""]
 
