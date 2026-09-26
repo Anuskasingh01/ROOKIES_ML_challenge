@@ -13,6 +13,7 @@ entities (macro-average), including singletons.
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 
@@ -126,3 +127,102 @@ def evaluate_predictions(
           f"singleton accuracy: {results['singleton_accuracy']:.4f}")
 
     return results
+
+
+def optimize_entity_threshold(
+    val_pairs_df: pd.DataFrame,
+    ground_truth_df: pd.DataFrame,
+    probability_col: str = "match_probability",
+    thresholds: np.ndarray | None = None,
+) -> tuple[float, float, pd.DataFrame]:
+    """
+    Search for the decision threshold that maximizes the official challenge
+    metric: entity-level macro-averaged F0.5.
+
+    Parameters
+    ----------
+    val_pairs_df : pd.DataFrame
+        Validation candidate pairs with columns:
+        [source1_entity_id, candidate_entity_id, probability_col]
+    ground_truth_df : pd.DataFrame
+        Ground truth matching labels for the validation entities with columns:
+        [source1_entity_id, matched_entity_ids] (comma-separated string or empty)
+    probability_col : str
+        Name of the probability column (default 'match_probability')
+    thresholds : np.ndarray | None
+        1D array of candidate thresholds to evaluate. If None, defaults to
+        np.linspace(0.05, 0.95, 91) (step of 0.01).
+
+    Returns
+    -------
+    best_threshold : float
+        Threshold maximizing validation entity-level macro F0.5.
+    best_score : float
+        The maximum macro F0.5 achieved.
+    sweep_df : pd.DataFrame
+        DataFrame with columns ['threshold', 'macro_f05', 'singleton_accuracy']
+        recording performance across the entire sweep.
+    """
+    if thresholds is None:
+        thresholds = np.linspace(0.05, 0.95, 91)
+
+    def parse_ids(val) -> set[str]:
+        if pd.isna(val) or str(val).strip() == "":
+            return set()
+        return {x.strip() for x in str(val).split(",") if x.strip()}
+
+    gt_dict = {
+        row["source1_entity_id"]: parse_ids(row["matched_entity_ids"])
+        for _, row in ground_truth_df.iterrows()
+    }
+    all_s1_ids = list(gt_dict.keys())
+
+    # Pre-index candidates and probabilities by source1_entity_id
+    cands_by_s1: dict[str, list[tuple[str, float]]] = {s1: [] for s1 in all_s1_ids}
+    if not val_pairs_df.empty:
+        for s1_id, cand_id, prob in zip(
+            val_pairs_df["source1_entity_id"],
+            val_pairs_df["candidate_entity_id"],
+            val_pairs_df[probability_col],
+        ):
+            if s1_id in cands_by_s1:
+                cands_by_s1[s1_id].append((str(cand_id), float(prob)))
+
+    records = []
+    best_threshold = 0.5
+    best_f05 = -1.0
+
+    for thr in thresholds:
+        thr_float = round(float(thr), 4)
+        scores = []
+        singleton_correct = 0
+        total_singletons = 0
+
+        for s1_id in all_s1_ids:
+            true_set = gt_dict[s1_id]
+            pred_set = {cid for cid, p in cands_by_s1[s1_id] if p >= thr_float}
+            score = _entity_f05(true_set, pred_set)
+            scores.append(score)
+
+            if len(true_set) == 0:
+                total_singletons += 1
+                if len(pred_set) == 0:
+                    singleton_correct += 1
+
+        macro_f05 = float(np.mean(scores)) if scores else 0.0
+        singleton_acc = (singleton_correct / total_singletons) if total_singletons > 0 else 1.0
+
+        records.append({
+            "threshold": thr_float,
+            "macro_f05": macro_f05,
+            "singleton_accuracy": singleton_acc,
+        })
+
+        # Tie-break: prefer higher threshold to favor precision under F0.5
+        if macro_f05 > best_f05 or (abs(macro_f05 - best_f05) < 1e-9 and thr_float > best_threshold):
+            best_f05 = macro_f05
+            best_threshold = thr_float
+
+    sweep_df = pd.DataFrame(records)
+    print(f"Optimal Entity Macro F0.5: {best_f05:.4f} at threshold: {best_threshold:.4f}")
+    return best_threshold, best_f05, sweep_df

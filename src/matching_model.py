@@ -23,6 +23,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
 )
+from src.evaluation import _entity_f05, optimize_entity_threshold
 
 
 def build_training_labels(
@@ -115,17 +116,17 @@ def train_model(
     feature_cols: list[str] | None = None,
     test_size: float = 0.2,
     random_state: int = 42,
+    val_ground_truth_df: pd.DataFrame | None = None,
 ):
     """
     Compare several classifiers (Logistic Regression, Random Forest,
     Gradient Boosting, HistGradientBoosting) on the pairwise feature matrix,
     evaluate each on a held-out split, and for each model pick the decision
-    threshold that maximizes validation F0.5 — a precision-weighted metric,
-    since false matches are costlier than missed matches for this task.
+    threshold that maximizes validation F0.5.
+    
+    If val_ground_truth_df is provided, tunes the threshold on the official
+    entity-level macro F0.5 metric. Otherwise falls back to pairwise F0.5.
     Returns the best-performing model by F0.5.
-
-    Threshold tuning is done purely on the held-out validation split (never
-    on training data), avoiding leakage.
     """
     if feature_cols is None:
         feature_cols = [
@@ -136,9 +137,21 @@ def train_model(
     X = features_df[feature_cols].fillna(0.0)
     y = features_df[label_col]
 
-    X_train, X_val, y_train, y_val = train_test_split(
-        X, y, test_size=test_size, stratify=y, random_state=random_state
-    )
+    val_pairs_meta = None
+    if val_ground_truth_df is not None and "source1_entity_id" in features_df.columns:
+        val_s1_set = set(val_ground_truth_df["source1_entity_id"])
+        val_mask = features_df["source1_entity_id"].isin(val_s1_set)
+        train_mask = ~val_mask
+        X_train, y_train = X[train_mask], y[train_mask]
+        X_val, y_val = X[val_mask], y[val_mask]
+        val_pairs_meta = features_df[val_mask][["source1_entity_id", "candidate_entity_id"]].copy()
+    else:
+        indices = np.arange(len(features_df))
+        X_train, X_val, y_train, y_val, idx_train, idx_val = train_test_split(
+            X, y, indices, test_size=test_size, stratify=y, random_state=random_state
+        )
+        if "source1_entity_id" in features_df.columns and "candidate_entity_id" in features_df.columns:
+            val_pairs_meta = features_df.iloc[idx_val][["source1_entity_id", "candidate_entity_id"]].copy()
 
     print(f"Train: {X_train.shape}, Val: {X_val.shape}")
 
@@ -166,16 +179,19 @@ def train_model(
         val_probs = clf.predict_proba(X_val)[:, 1]
         auc = roc_auc_score(y_val, val_probs)
 
-        precision, recall, thresholds = precision_recall_curve(y_val, val_probs)
-        # F-beta with beta=0.5 weights precision more heavily than recall.
-        f05_scores = (1.25 * precision * recall) / (0.25 * precision + recall + 1e-12)
-        # precision_recall_curve returns one more precision/recall point than
-        # thresholds, so drop the last (threshold=inf) point before argmax.
-        best_idx = int(np.nanargmax(f05_scores[:-1]))
-        thr = thresholds[best_idx]
-        f05 = f05_scores[best_idx]
+        if val_ground_truth_df is not None and val_pairs_meta is not None and not val_pairs_meta.empty:
+            val_pairs = val_pairs_meta.copy()
+            val_pairs["match_probability"] = val_probs
+            thr, f05, _ = optimize_entity_threshold(val_pairs, val_ground_truth_df)
+            print(f"{name}: AUC={auc:.4f}, best Entity Macro F0.5={f05:.4f} at threshold={thr:.4f}")
+        else:
+            precision, recall, thresholds = precision_recall_curve(y_val, val_probs)
+            f05_scores = (1.25 * precision * recall) / (0.25 * precision + recall + 1e-12)
+            best_idx = int(np.nanargmax(f05_scores[:-1]))
+            thr = float(thresholds[best_idx])
+            f05 = float(f05_scores[best_idx])
+            print(f"{name}: AUC={auc:.4f}, best Pairwise F0.5={f05:.4f} at threshold={thr:.4f}")
 
-        print(f"{name}: AUC={auc:.4f}, best F0.5={f05:.4f} at threshold={thr:.4f}")
         results[name] = {"auc": auc, "f0.5": f05, "threshold": thr}
 
         if f05 > best_f05:
