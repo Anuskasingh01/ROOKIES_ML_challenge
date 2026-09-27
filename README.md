@@ -1,5 +1,9 @@
 # ML Challenge 2026 — Business Entity Resolution Pipeline
 
+**Team Name:** Rookies  
+**Team Members:** Sathwika Reddy (Person 1), Anuska Singh (Person 2), N S Shamika (Person 3), Rachita Sharma (Person 4)  
+**Submission Date:** 27/9/2026  
+
 Unified, production-grade entity resolution system integrating **Person 1 (Data Engineering & Preprocessing)**, **Person 2 (Candidate Generation & Blocking)**, **Person 3 (Feature Engineering & Matching Model)**, and **Person 4 (Integration, Entity-Level Threshold Optimization, Persistence & Submission Validation)**.
 
 ---
@@ -50,10 +54,10 @@ dataset/ (train & test TSVs)
 
 | Role | Member Responsibilities | Source Files | Tests |
 |---|---|---|---|
-| **Person 1** | Data Engineering, Text Preprocessing, Postal Extraction, Schema Validation | `src/preprocessing.py`<br>`scripts/audit_data_integrity.py` | `tests/test_preprocessing.py` |
-| **Person 2** | Multi-Strategy Candidate Blocking, Inverted Indexing, candidate_pairs.tsv | `src/blocking.py`<br>`src/config.py`<br>`run_blocking.py` | `tests/test_blocking.py` |
-| **Person 3** | Feature Engineering, Text Similarities, TF-IDF Model, Classifier Training | `src/features.py`<br>`src/matching_model.py` | `tests/test_features.py`<br>`tests/test_matching_model.py` |
-| **Person 4** | Integration, Entity-Level Macro F0.5 Tuning, Model Persistence, main.py, Validation | `main.py`<br>`src/evaluation.py`<br>`src/predict.py`<br>`utils/validate_submission.py` | `tests/test_model_persistence.py`<br>`tests/test_threshold_optimization.py`<br>`tests/test_integration.py` |
+| **Person 1: Sathwika Reddy** | Data Engineering, Text Preprocessing, Postal Extraction, Schema Validation | `src/preprocessing.py`<br>`scripts/audit_data_integrity.py` | `tests/test_preprocessing.py` |
+| **Person 2: Anuska Singh** | Multi-Strategy Candidate Blocking, Inverted Indexing, candidate_pairs.tsv | `src/blocking.py`<br>`src/config.py`<br>`run_blocking.py` | `tests/test_blocking.py` |
+| **Person 3: N S Shamika** | Feature Engineering, Text Similarities, TF-IDF Model, Classifier Training | `src/features.py`<br>`src/matching_model.py` | `tests/test_features.py`<br>`tests/test_matching_model.py` |
+| **Person 4: Rachita Sharma** | Integration, Entity-Level Macro F0.5 Tuning, Model Persistence, main.py, Validation | `main.py`<br>`src/evaluation.py`<br>`src/predict.py`<br>`utils/validate_submission.py` | `tests/test_model_persistence.py`<br>`tests/test_threshold_optimization.py`<br>`tests/test_integration.py` |
 
 ---
 
@@ -127,24 +131,26 @@ python utils/validate_submission.py --matching output/matching_results.tsv --can
 ```bash
 python -m pytest tests -v
 ```
-All **121 tests** pass covering preprocessing, blocking, feature generation, model training, bundle persistence, threshold optimization, and end-to-end integration.
+All **123 tests** pass covering preprocessing, blocking, feature generation, model training, bundle persistence, threshold optimization, and end-to-end integration.
 
 ---
 
 ## 5. Deliverables & Output Schema
 
 1. **`output/matching_results.tsv`** (Final Submission):
-   - Tab-separated UTF-8 file.
+   - Tab-separated UTF-8 file (678.82 MB).
    - Header: `source1_entity_id\tmatched_entity_ids`
-   - Every Source 1 entity from the test set is present exactly once. Singletons have an empty string. Matches are comma-separated `S2-` and `S3-` IDs.
+   - Every Source 1 entity from the test set is present exactly once (1,732,544 rows). Singletons have an empty string. Matches are comma-separated `S2-` and `S3-` IDs.
 2. **`output/candidate_pairs.tsv`** (Candidate Deliverable):
-   - Tab-separated UTF-8 file.
+   - Tab-separated UTF-8 file (4.07 GB).
    - Header: `source1_entity_id\tcandidate_entity_ids`
-   - Contains candidate IDs evaluated per Source 1 entity.
-3. **`reports/matching_model.joblib`** (Model Bundle):
+   - Contains candidate IDs evaluated per Source 1 entity (314,241,922 candidate pairs).
+3. **`ROOKIES_submission.zip`** (Final Submission Package for Unstop):
+   - Formatted zip package containing `output/`, `code/business_entity_resolution/`, and `Documentation_template.md`.
+4. **`reports/matching_model.joblib`** (Model Bundle):
    - Contains `{model, threshold, tfidf_model, feature_cols, metadata}`.
-4. **`reports/predictions.csv`** (Pairwise Scoring Telemetry):
-   - Detailed pairwise evaluation probabilities and binary decisions.
+5. **`diagnostic_report.md`** (Diagnostic & Validation Audit):
+   - Raw evaluate_predictions() metrics, singleton breakdown, and integrity checks.
 
 ---
 

@@ -333,61 +333,34 @@ def build_pair_features_batch(
     immediately after the merges so all downstream helpers receive clean strings.
     """
     # ------------------------------------------------------------------
-    # Step 1: Attach source-1 norm fields
+    # Step 1 & 2: Attach source-1 and source-2/3 norm fields
+    # Use cached column dictionaries on s1_idx / s23_idx for O(1) row lookups,
+    # avoiding the massive overhead of re-merging 10M-row index DataFrames on every batch.
     # ------------------------------------------------------------------
+    if "_name_map" not in s1_idx.attrs:
+        s1_idx.attrs["_name_map"] = s1_idx["name_norm"].fillna("").to_dict()
+        s1_idx.attrs["_addr_map"] = s1_idx["address_norm"].fillna("").to_dict()
+        s1_idx.attrs["_ctry_map"] = s1_idx["country_norm"].fillna("").to_dict()
+
+    if "_name_map" not in s23_idx.attrs:
+        s23_idx.attrs["_name_map"] = s23_idx["name_norm"].fillna("").to_dict()
+        s23_idx.attrs["_addr_map"] = s23_idx["address_norm"].fillna("").to_dict()
+        s23_idx.attrs["_ctry_map"] = s23_idx["country_norm"].fillna("").to_dict()
+
     df = pairs_df.copy()
-    df = df.merge(
-        s1_idx.rename(columns={
-            "name_norm":    "name_norm_s1",
-            "address_norm": "address_norm_s1",
-            "country_norm": "country_norm_s1",
-        }),
-        left_on="source1_entity_id",
-        right_index=True,
-        how="left",
-    )
+    s1_ids = df["source1_entity_id"].to_list()
+    cand_ids = df["candidate_entity_id"].to_list()
 
-    # ------------------------------------------------------------------
-    # Step 2: Attach source-2/3 norm fields
-    # ------------------------------------------------------------------
-    df = df.merge(
-        s23_idx.rename(columns={
-            "name_norm":    "name_norm_s2",
-            "address_norm": "address_norm_s2",
-            "country_norm": "country_norm_s2",
-        }),
-        left_on="candidate_entity_id",
-        right_index=True,
-        how="left",
-    )
-
-    # ------------------------------------------------------------------
-    # Step 3: Safety fill — ensure no NaN reaches the helpers
-    # (can occur if a candidate ID is absent from the index)
-    # ------------------------------------------------------------------
-    norm_cols = [
-        "name_norm_s1", "address_norm_s1", "country_norm_s1",
-        "name_norm_s2", "address_norm_s2", "country_norm_s2",
-    ]
-    df[norm_cols] = df[norm_cols].fillna("")
+    name_s1 = [s1_idx.attrs["_name_map"].get(i, "") for i in s1_ids]
+    name_s2 = [s23_idx.attrs["_name_map"].get(i, "") for i in cand_ids]
+    addr_s1 = [s1_idx.attrs["_addr_map"].get(i, "") for i in s1_ids]
+    addr_s2 = [s23_idx.attrs["_addr_map"].get(i, "") for i in cand_ids]
+    ctry_s1 = [s1_idx.attrs["_ctry_map"].get(i, "") for i in s1_ids]
+    ctry_s2 = [s23_idx.attrs["_ctry_map"].get(i, "") for i in cand_ids]
 
     # ------------------------------------------------------------------
     # Step 4: Row-wise string similarity features
-    #
-    # NOTE (future optimisation): the four .apply() calls below are
-    # Python-level row iterations.  They are the dominant cost for large
-    # candidate sets.  If Person 2's blocking produces O(millions) of
-    # pairs, consider replacing these with parallelised approaches
-    # (joblib Parallel + rapidfuzz.process, or pandas-on-Spark / cuDF).
-    # Revisit once actual candidate counts are known.
     # ------------------------------------------------------------------
-
-    # Name features
-    name_s1 = df["name_norm_s1"].to_numpy()
-    name_s2 = df["name_norm_s2"].to_numpy()
-    addr_s1 = df["address_norm_s1"].to_numpy()
-    addr_s2 = df["address_norm_s2"].to_numpy()
-
     df["name_jaccard"] = [_token_jaccard(a, b) for a, b in zip(name_s1, name_s2)]
     df["name_edit_ratio"] = [_edit_ratio(a, b) for a, b in zip(name_s1, name_s2)]
     df["name_token_sort"] = [_token_sort_ratio(a, b) for a, b in zip(name_s1, name_s2)]
@@ -399,24 +372,14 @@ def build_pair_features_batch(
 
     # ------------------------------------------------------------------
     # Step 5: TF-IDF cosine similarity on names — fully vectorised
-    #
-    # transform() accepts a list/Series of strings and returns a sparse
-    # matrix.  element_wise_cosine avoids the full N×N matrix product by
-    # computing only the diagonal (each row paired with its counterpart).
     # ------------------------------------------------------------------
-    tfidf_s1 = tfidf_model.transform(df["name_norm_s1"])
-    tfidf_s2 = tfidf_model.transform(df["name_norm_s2"])
+    tfidf_s1 = tfidf_model.transform(name_s1)
+    tfidf_s2 = tfidf_model.transform(name_s2)
 
-    # Row-paired dot product: equivalent to cosine_similarity(A, B).diagonal()
-    # but without materialising the full N×N matrix — O(N × vocab) not O(N²).
     norms_s1 = np.asarray(tfidf_s1.power(2).sum(axis=1)).flatten() ** 0.5
     norms_s2 = np.asarray(tfidf_s2.power(2).sum(axis=1)).flatten() ** 0.5
     dot_products = np.asarray(tfidf_s1.multiply(tfidf_s2).sum(axis=1)).flatten()
 
-    # Safe division: pre-allocate zeros then only divide where denom > 0.
-    # Using np.where(denom > 0, dot/denom, 0) triggers a RuntimeWarning because
-    # NumPy evaluates both branches before selecting — the 0/0 case fires even
-    # though its result is discarded.  The explicit assignment below avoids that.
     denom = norms_s1 * norms_s2
     cosine = np.zeros(len(denom), dtype=np.float64)
     valid = denom > 0
@@ -426,14 +389,7 @@ def build_pair_features_batch(
     # ------------------------------------------------------------------
     # Step 6: Country exact match (boolean as int)
     # ------------------------------------------------------------------
-    df["country_match"] = (
-        df["country_norm_s1"] == df["country_norm_s2"]
-    ).astype(int)
-
-    # ------------------------------------------------------------------
-    # Step 7: Drop raw norm string columns — callers only need features
-    # ------------------------------------------------------------------
-    df = df.drop(columns=norm_cols)
+    df["country_match"] = [int(a == b) for a, b in zip(ctry_s1, ctry_s2)]
 
     return df.reset_index(drop=True)
 

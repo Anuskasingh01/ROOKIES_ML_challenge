@@ -133,6 +133,14 @@ def generate_predictions(
     del s1_norm, s2_norm, s3_norm
     gc.collect()
 
+    print("Pre-building fast dictionary lookups...")
+    s1_idx.attrs["_name_map"] = s1_idx["name_norm"].fillna("").to_dict()
+    s1_idx.attrs["_addr_map"] = s1_idx["address_norm"].fillna("").to_dict()
+    s1_idx.attrs["_ctry_map"] = s1_idx["country_norm"].fillna("").to_dict()
+    s23_idx.attrs["_name_map"] = s23_idx["name_norm"].fillna("").to_dict()
+    s23_idx.attrs["_addr_map"] = s23_idx["address_norm"].fillna("").to_dict()
+    s23_idx.attrs["_ctry_map"] = s23_idx["country_norm"].fillna("").to_dict()
+
     if tfidf is None:
         print("Fitting TF-IDF (fallback)...")
         tfidf = fit_tfidf(s1_df, s2_df, s3_df)
