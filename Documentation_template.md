@@ -1,8 +1,8 @@
 # ML Challenge 2026: Business Entity Resolution Solution Template
 
-**Team Name:** [Your Team Name]  
-**Team Members:** [List all team members]  
-**Submission Date:** [Date]
+**Team Name:** Rookies  
+**Team Members:** Anuska Singh, Sathwika Reddy, N S Shamika, Rachita Sharma  
+**Submission Date:** 27/9/2026
 
 ---
 
